@@ -1,0 +1,18 @@
+This is a mirror of http://www.vim.org/scripts/script.php?script_id=4112
+
+Riv is a vim plugin for managing and writing reStructuredText_ Documents.
+Short for 'reStructuredText in Vim'. 
+
+It is for people either want to manage documents in a wiki way,
+or writing documents in a neat way.
+
+.. _reStructuredText: http://docutils.sourceforge.net/rst.html
+
+* Features : see https://github.com/Rykka/riv.vim#features
+* Screenshot:  see https://github.com/Rykka/riv.vim#screenshot
+
+* Currently it's a developing version. 
+  So things may change quickly. Keep up-to-date.
+* Both bug reports and feature request are welcome. 
+  Please Post issues at https://github.com/Rykka/riv.vim/issues
+
