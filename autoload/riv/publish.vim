@@ -3,7 +3,7 @@
 "    File: publish.vim
 " Summary: publish to html/pdf.
 "  Author: Rykka G.Forest
-"  Update: 2012-06-09
+"  Update: 2012-06-27
 " Version: 0.5
 "=============================================
 let s:cpo_save = &cpo
@@ -115,9 +115,7 @@ endfun "}}}
 fun! riv#publish#2html(file,html_path,browse) "{{{
     let file = expand(a:file)
     let out_path = a:html_path . s:get_rel_to_root(file)
-    if !isdirectory(fnamemodify(out_path,':h')) 
-        call mkdir(fnamemodify(out_path,':h'),'p')
-    endif
+    call s:auto_mkdir(out_path)
     let file_path = fnamemodify(out_path, ":r").'.html'
 
     call s:create_tmp(file)
@@ -129,9 +127,7 @@ endfun "}}}
 
 fun! riv#publish#copy2proj(file,html_path) abort "{{{
     let out_path = a:html_path . s:get_rel_to_root(expand(a:file))
-    if !isdirectory(fnamemodify(out_path,':h')) 
-        call mkdir(fnamemodify(out_path,':h'),'p')
-    endif
+    call s:auto_mkdir(out_path)
     call s:sys( 'cp -f '. a:file. ' '.  fnamemodify(out_path, ':h'))
 endfun "}}}
 
@@ -166,15 +162,16 @@ let s:tempfile = tempname()
 fun! riv#publish#file2(ft, browse) "{{{
     call riv#publish#2(a:ft , expand('%:p'), s:get_path_of(a:ft), a:browse)
 endfun "}}}
-
+fun! s:auto_mkdir(path)
+    if !isdirectory(fnamemodify(a:path,':h')) 
+        call mkdir(fnamemodify(a:path,':h'),'p')
+    endif
+endfun
 fun! riv#publish#2(ft, file, path, browse) "{{{
     let file = expand(a:file)
     let out_path = a:path . s:get_rel_to_root(file)
-    if !isdirectory(fnamemodify(out_path,':h')) 
-        call mkdir(fnamemodify(out_path,':h'),'p')
-    endif
     let file_path = fnamemodify(out_path, ":r").'.'.a:ft
-
+    call s:auto_mkdir(out_path)
     call s:create_tmp(file)
     call s:convert_to(a:ft,file_path,s:rst_args(a:ft))
     if a:browse
@@ -195,7 +192,8 @@ fun! s:convert_to(ft,path,...) "{{{
 endfun "}}}
 
 fun! s:get_path_of(ft) "{{{
-    return g:_riv_c.p[s:id()]._build_path . a:ft . '/'
+    let slash = has('win32') || has('win64') ? '\' : '/'
+    return g:_riv_c.p[s:id()]._build_path . a:ft . slash
 endfun "}}}
 fun! s:get_root_path() "{{{
     return g:_riv_c.p[s:id()]._root_path

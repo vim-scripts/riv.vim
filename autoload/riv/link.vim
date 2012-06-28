@@ -3,7 +3,7 @@
 "    File: link.vim
 " Summary: link ref and targets.
 "  Author: Rykka G.Forest
-"  Update: 2012-06-15
+"  Update: 2012-06-27
 " Version: 0.5
 "=============================================
 let s:cpo_save = &cpo
@@ -122,6 +122,7 @@ fun! riv#link#open() "{{{
     elseif !empty(mo.groups[3])
         if !empty(mo.groups[4])             " it's file://xxx
             if mo.str =~ '^file'
+                update
                 exe "edit ".expand(mo.groups[4])
                 let b:riv_p_id = id
             else
@@ -139,18 +140,15 @@ fun! riv#link#open() "{{{
         if s:is_relative(mo.str)
             let dir = expand('%:p:h').'/'
             let file = dir . mo.str
-            if s:is_directory(mo.str)
-                if !isdirectory(mo.str)
-                \ && input("'".mo.str."' Does not exist. \nCreate?(Y/n):")!~?'n'
-                    call mkdir(mo.str,"p")
-                endif
+            if s:is_directory(file)
                 let file = file . 'index.rst'
-            elseif fnamemodify(file, ':e') == '' && g:riv_localfile_linktype == 2
-                let file = file . ext
+            elseif g:riv_localfile_linktype == 2 && fnamemodify(file, ':e') == ''
+                let file = file . '.rst'
             endif
         else
             let file = expand(mo.str)
         endif
+        update
         exe "edit ".file
         let b:riv_p_id = id
         return 4

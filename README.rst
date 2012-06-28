@@ -2,17 +2,17 @@ Riv Instruction
 ===============
 
 :Author: Rykka G.Forest
-:Date:   2012-06-23 18:47:58
-:Version: 0.64 
+:Date:   2012-06-28 19:28:26
+:Version: 0.65 
 :Github: https://github.com/Rykka/riv.vim
 
 **Riv** is a vim plugin for managing and writing reStructuredText_ Documents.
 Short for 'reStructuredText in Vim'. 
 
-.. _reStructuredText: http://docutils.sourceforge.net/rst.html
-
 It is for people either want to manage documents in a wiki way,
 or writing reStructuredText documents.
+
+.. _reStructuredText: http://docutils.sourceforge.net/rst.html
 
 
 Features
@@ -45,6 +45,8 @@ These features are for the Riv Project.
 * Take a glance
 
 .. image::  http://i.minus.com/jCFTijpr6oqYt.jpg
+
+* To Start: see `Instruction Details`_
 
 Install
 -------
@@ -88,10 +90,10 @@ Issues
 Todo
 ---------
 
-This
-~~~~~
+Prev
+~~~~
 
-Things todo in this version.
+See Changelog in doc/riv.txt
 
 * 0.64:
 
@@ -103,7 +105,18 @@ Things todo in this version.
     (nothing wrong, just indent it with the list.)
   + DONE 2012-06-23  Fold : the fold text should showing correct line while editing.
   + FIXED 2012-06-24 Fold : wrong end of section when fold_blank is 0.
-    
+
+
+This
+~~~~~
+
+Things todo in this version.
+
+* 0.65:
+
+  + DONE 2012-06-27 take care of the slash of directory in windows .
+  + FIXED 2012-06-28 correct cursor position when creating todo items and list items.
+  + DONE 2012-06-28 format the scratch index, sort with year/month/day 
 
 Next 
 ~~~~~
@@ -117,9 +130,8 @@ Things todo in next versions.
 * Scratch: show Scratch sign in Calendar.
 * Publish: support the reStructuredText document not in a project.
 
-
 Instruction Details
--------------------
+===================
 
 * How to use?
 
@@ -127,7 +139,8 @@ Instruction Details
   these settings will be automatically on. 
   (make sure ``filetype on`` in your vimrc)
 
-  To manage documents in a wiki way, see Project_.
+  To manage documents in a wiki way, you should set a project,
+  see Project_.
 
 * About the mapping
 
@@ -140,7 +153,7 @@ Instruction Details
 
 
 Folding 
-~~~~~~~~
+--------
 
 Fold reStructuredText file with sections, lists, and blocks automatically.
 
@@ -151,8 +164,8 @@ Folding will be updated after you write buffer to file.
 Pressing ``<Enter>`` or double clicking on folded lines will open that fold.
 
 * Update Folding: use ``zx`` or ``<C-E><Space>j``
-* Toggle Folding: use ``<C-E><Space><Space>`` 
-* Toggle all Folding: use ``<C-E><Space>m``
+* Toggle Folding: use ``za`` or ``<C-E><Space><Space>`` 
+* Toggle all Folding: use ``zA`` or ``<C-E><Space>m``
 
 To show the blank lines in the end of a folding, use ``g:riv_fold_blank``.
 
@@ -190,11 +203,13 @@ So there are some options about it.
   default is 3000.
 
 To set an initial folding level for a file . you can use ``modeline``::
+    
 
-    ..  vim: fdl=0 fdm=manual :
+    ..  vim: fdl=0 :
+        This means all fold will be folded when opening files
 
 Sections 
-~~~~~~~~~
+---------
 
 Section levels and numbers are auto detected.
 
@@ -223,7 +238,7 @@ Clicking on the section reference will bring you to the section title.
        **=-~"'`** , you can change it with ``g:riv_section_levels``
 
 Lists
-~~~~~
+-----
 
 Auto numbered and auto leveled bullet and enumerated list.
 
@@ -275,7 +290,7 @@ The Sequence of the list level is:
 __ http://docutils.sourceforge.net/docs/ref/rst/restructuredtext.html#bullet-lists
 
 Links
-~~~~~
+-----
 
   
 Clicking on links will executing it's default behavior 
@@ -297,7 +312,7 @@ Clicking on links will executing it's default behavior
     And append the footnote target to the end of file.
 
 Table
-~~~~~
+-----
   
 Auto Format Table (Grid Table Only).
 (Currently require vim compiled with python. )
@@ -322,7 +337,7 @@ To create a table , just insert ``| xxx |`` and press ``<Enter>``.
 +-----------------+-----------------------------------------------------------+
 
 Highlighting
-~~~~~~~~~~~~
+------------
 
 Improved syntax file. 
 
@@ -338,11 +353,17 @@ Improved syntax file.
    You can use ``g:riv_highlight_code`` to set which type of code to highlight.
    default is ``lua,python,cpp,javascript,vim,sh``
 
+   :NOTE: To enable highlighting in converted file, 
+          python ``pygments`` package must installed for ``docutils`` 
+          parsing syntax highlighting.
+
+          see http://docutils.sourceforge.net/sandbox/code-block-directive/tools/pygments-enhanced-front-ends/
+
 *  The links under cursor are highlighted. 
    Disable it by set ``g:riv_hover_link_hl`` to 0
 
 Indent
-~~~~~~
+------
 
 Improved indent file.
 
@@ -350,7 +371,7 @@ In Insert mode , when starting a newline or press ``<BS>`` (BackSpace key).
 the cursor will be put at the calculated position.
 
 Project
-~~~~~~~
+-------
 
 Manage your reStructuredText documents in a wiki way.
 
@@ -360,7 +381,7 @@ Manage your reStructuredText documents in a wiki way.
     let project1 = { 'path': '~/Dropbox/rst',}
     let g:riv_projects = [project1]
 
-    " You could add multi project either.
+    " You could add multiple projects as well 
     let project2 = { 'path': '~/Dropbox/rst2',}
     let g:riv_projects = [project1, project2]
 
@@ -368,66 +389,97 @@ Manage your reStructuredText documents in a wiki way.
 * Use ``:RivAsk`` ``<C-E>wa`` to choose one project to open.
 
 File
-~~~~
+----
 
 
 As reStructuredText haven't define a pattern for local files currently.
 
-**Riv**  provides two kinds of patterns to determine the local file
+**Riv**  provides two kinds of style to determine the local file
 in the rst documents. 
 
-* You can switch with ``g:riv_localfile_linktype``
+The ``bare extension style`` and ``square bracket style``
 
-  + when set to 1:
+* You can switch the style with ``g:riv_localfile_linktype``
 
-    words like 'xxx.rst' 'xxx.py' 'xxx.cpp' will be detected as file link.
-    directory like 'xxx/' will link to 'xxx/index.rst'
+  + when set to 1, use bare extension style:
+
+    words like ``xxx.rst`` ``xxx.py`` ``xxx.cpp`` will be detected as file link.
+
+    words like ``xxx/`` will be considered as directory , 
+    and link to ``xxx/index.rst``
+
+    words like ``/xxxx/xxx.rst`` ``~/xxx/xxx.rst`` ``c:/xxx.rst``
+    will be considered as external file links
+
+    words like ``/xxxx/xxx/`` ``~/xxx/xxx/`` 
+    will be considered as external directory links, 
+    and link to the directory.
 
     You can add other extensions with ``g:riv_file_link_ext``.
     which default is ``vim,cpp,c,py,rb,lua,pl`` ,
     meaning these files will be recongized.
 
-  + when set to 2: 
+  + when set to 2, square bracket style: 
     
-    words like '[xxx]' '[xxx.vim]' will be detected as file link. 
-    directory like '[xxx/]' will link to 'xxx/index.rst'
+    words like ``[xxx]`` ``[xxx.vim]`` will be detected as file link. 
 
-  + when set to 0 , no local file link.
+    words like ``[xxx/]' will link to ``xxx/index.rst``
+
+    words like ``[/xxxx/xxx.rst]`` ``[~/xxx/xxx.rst]``  ``[c:/xxx/xxx.rst]``
+    will be considered as external file links
+
+    words like ``[/xxxx/xxx/]`` ``[~/xxx/xxx/]`` 
+    will be considered as external directory links, 
+    and link to the directory.
+
+  + when set to 0, no local file link.
   + default is 1.
 
-* When Publish to html, all local file link will be converted to an embedded link.
+* When Publish to html, all detected local file link will be converted to an embedded link.
 
     e.g. `xxx.rst <xxx.html>`_ `xxx.py <xxx.py>`_
 
 * To delete a local file in project.
 
   ``:RivDelete`` ``<C-E>df``
-  it will delete all reference to this file in current level's index.rst .
+  it will also delete all reference to this file in ``index.rst`` of the directory.
 
 Scratch
-~~~~~~~
+-------
   
-The scratches is created auto named by date,
+The scratches is created auto named by date, 
 It is a place for writing diary or hold idea and thoughts.
 
-Scratches will be put in 'scratch' folder in project directory.
+Scratches will be put in scratch folder in project directory.
+You can change it with 'scratch_path' of project setting ,default is 'scratch'::
+    
+    " Use another directory
+    let project1.scratch_path = 'diary'
+    " Use absolute path, then no todo helper and no converting for it.
+    let project1.scratch_path = '~/Documents/diary'
 
 * ``:RivScratchCreate`` ``<C-E>cc``
   Create or jump to the scratch of today.
+
 * ``:RivScratchView`` ``<C-E>cv``
   View Scratch index.
 
+  The index is auto created. You can change the month name using 
+  ``g:riv_month_names``. 
+
+  default is:
+
+      ``January,February,March,April,May,June,July,August,September,October,November,December``
+
 Todos
-~~~~~
+-----
 
 Writing todo lists in reStructuredText documents .
 
 Todo items are bullet/enumerated lists with todo-box or todo-keywords.
 Datestamps are supported.
 
-The statistics of it's progress include child items will be shown in percentage.
-When a todo item is folded. 
-
+The statistics of the progress (include child items) will be shown When folded. 
 
 A todo-box item:
 
@@ -467,11 +519,12 @@ Keyword groups:
   default is ``TODO,DONE;FIXME,FIXED;START,PROCESS,STOP``,
 
 * ``RivTodoType1`` ``<C-E>e1``... ``RivTodoType4`` ``<C-E>e4`` 
-  to change the keyword group. 
-* ``RivTodoAsk`` ``<C-E>e`` will show an keyword group list to choose.
+  to add or change the todo item by group. 
+* ``RivTodoAsk`` ``<C-E>e``` will show an keyword group list to choose.
+* ``RivTodoDel`` ``<C-E>ex`` will delete the todo item
 
 Helpers
-~~~~~~~
+-------
 
 A window to show something of the project.
 
@@ -486,7 +539,7 @@ A window to show something of the project.
 * Set ``g:riv_fuzzy_help`` to 1 to enable fuzzy searching in helper.
 
 Publish
-~~~~~~~
+-------
 
 Some wrapper to convert rst files to html/xml/latex/odt/... 
 (require python docutils package )
@@ -501,14 +554,17 @@ Some wrapper to convert rst files to html/xml/latex/odt/...
 * ``Riv2HtmlProject`` ``<C-E>2hp``
 
 Convert to the file and browse.
+
 * ``Riv2Odt`` ``<C-E>2oo``  
 * ``Riv2Xml`` ``<C-E>2xx``
 * ``Riv2S5`` ``<C-E>2ss``
 * ``Riv2Latex`` ``<C-E>2ll``
+
 The browser is set with ``g:riv_ft_browser``. 
 default is (unix:'xdg-open', windows:'start')
 
 The path of building files by default is under ``_build`` in your project directory.
+
 * Open the build path: `Riv2BuildPath` `<C-E>2b`
 * To change the path. Set it in your vimrc::
     
