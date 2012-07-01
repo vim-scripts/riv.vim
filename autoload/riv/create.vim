@@ -9,90 +9,12 @@
 let s:cpo_save = &cpo
 set cpo-=C
 
-fun! riv#create#foot() "{{{
-    " return a link target and ref def.
-    " DONE: 2012-06-10 get buf last footnote.
-    " DONE: 2012-06-10 they should add at different position.
-    "       current and last.
-    "   
-    " put cursor in last line and start backward search.
-    " get the last footnote and return.
-
-    let id = riv#link#get_last_foot()[1] + 1
-    let line = getline('.') 
-
-    if line =~ g:_riv_p.table
-        let tar = substitute(line,'\%' . col(".") . 'c' , ' ['.id.']_ ', '')
-    elseif line =~ '\S\@<!$'
-    " have \s before eol.
-        let tar = line."[".id."]_"
-    else
-        let tar = line." [".id."]_"
-    endif
-    let footnote = input("[".id."]: Your footnote message is?\n")
-    if empty(footnote) | return | endif
-    let def = ".. [".id."] ".footnote
-    call setline(line('.'),tar)
-    call append(line('$'),def)
-    
-endfun "}}}
-
-fun! s:repl_with_link(line) "{{{
-    " We substitute the file link ptn  in line
-    "  'xxx.rst'  with 'xxx.rst_'   
-    "  '[xxx]  with  'xxx_' , not [xxx]_ , as that's the citation 
-    " return the line a list contains the link.
-    " which can be used for create link target
-    " index.rst => index.rst_
-    " .. index.rst_: index.rst
-    " [index]   => index_
-    " .. index_ : index.rst
-    let line = a:line
-    let file = matchstr(a:line, g:_riv_p.link_file)
-    let idx = matchend(a:line, g:_riv_p.link_file)
-    let links = []
-    while !empty(file)
-        if g:riv_localfile_linktype == 2
-            let file = matchstr(file, '^\[\zs.*\ze\]$')
-        endif
-        let file = s:escape(file)
-        if !s:is_relative(file)
-                let title = file
-                let path = file
-        elseif s:is_directory(file)
-            let title = file
-            let path = title . 'index.html'
-        else
-            if file =~ '\.rst$' 
-                let title = matchstr(file, '.*\ze\.rst$')
-                let path = title.'.html'
-            elseif fnamemodify(file, ':e') == '' && g:riv_localfile_linktype == 2
-                let title = file
-
-                let path = title.'.html'
-            else
-                let title = file
-                let path = file
-            endif
-        endif
-        " file is xxx
-        call add(links, [file , path])
-        let line = substitute(line, s:escape_file_ptn(file), 
-                    \s:gen_embed_link(title, path), 'g')
-        let file = matchstr(line, g:_riv_p.link_file,idx)
-        let idx = matchend(line, g:_riv_p.link_file,idx)
-    endwhile
-    return line
-endfun "}}}
-
+" link "{{{
 fun! s:is_relative(name) "{{{
     return a:name !~ '^\~\|^/\|^[a-zA-Z]:'
 endfun "}}}
 fun! s:is_directory(name) "{{{
     return a:name =~ '/$' 
-endfun "}}}
-fun! s:escape(txt) "{{{
-    return escape(a:txt, '~.*\[]^$')
 endfun "}}}
 
 fun! s:expand_file_link(file) "{{{
@@ -137,8 +59,12 @@ fun! s:expand_link(word) "{{{
         return s:expand_file_link(word)
     else
         if word =~ '\v^'.g:_riv_p.ref_name.'$'
-            let ref = word.'_'
-            let tar = '.. _'.word.': '.word
+            if word =~ '^[[:alnum:]]\{40}$'
+                let [ref, tar] = [word[:7].'_', '.. _' . word[:7].': '.word]
+            else
+                let ref = word.'_'
+                let tar = '.. _'.word.': '.word
+            endif
         elseif word =~ g:_riv_p.link_ref_footnote
             " footnote
             let trim = strpart(word,  0 , len(word)-1)
@@ -148,12 +74,12 @@ fun! s:expand_link(word) "{{{
             let trim = strpart(word,  0 , len(word)-1)
             let ref = word
             let tar = '.. _'.trim.': '.trim
-        elseif word =~ g:_riv_p.link_ref_anoymous
+        elseif word =~ g:_riv_p.link_ref_anonymous
             " anonymous link
             let ref = word
-            let tar = '__ '.word
+            let tar = '__ '.s:normal_phase(word)
         elseif word =~ g:_riv_p.link_ref_phase
-            let trim = strpart(word,  0 , len(word)-1)
+            let trim = s:normal_phase(word)
             let ref = word
             let tar = '.. _'.trim.': '.trim
         else
@@ -164,32 +90,69 @@ fun! s:expand_link(word) "{{{
     endif
 endfun "}}}
 
-fun! riv#create#link() "{{{
-    let row = line('.')
+fun! s:normal_phase(text) "{{{
+    let text = substitute(a:text ,'\v(^__=|_=_$)','','g')
+    let text = substitute(text ,'\v(^`|`$)','','g')
+    let text = substitute(text ,'\v(^\[|\]$)','','g')
+    return text
+endfun "}}}
+fun! s:get_cWORD_obj() "{{{
+    let line = getline('.')
+    let ptn = printf('\%%%dc.', col('.'))
+    let obj = {}
+    if matchstr(line, ptn)=~'\S'
+        let ptn = '\S*'.ptn.'\S*'
+        let obj.str = matchstr(line, ptn)
+        let obj.start = match(line, ptn)
+        let obj.end  = matchend(line, ptn)
+    endif
+    return obj
+endfun "}}}
+fun! s:get_phase_obj() "{{{
+    " if cursor is in a phase ,return it's idx , else return -1
+    let line = getline('.')
     let col = col('.')
+    let ptn = printf('`[^`]*\%%%dc[^`]*`__\?\|\%%%dc`[^`]*`__\?', col, col)
+    let obj = {}
+    let start = match(line, ptn)
+    if start != -1
+        let obj.start = start
+        let obj.str = matchstr(line, ptn)
+        let obj.end  = matchend(line, ptn)
+    endif
+    return obj
+endfun "}}}
+fun! riv#create#link() "{{{
+    let [row, col] = [line('.'), col('.')]
     let line = getline(row)
-    let word = matchstr(line , '\S*\%'.col.'c\S*')
-    let idx = match(line , '\S*\%'.col.'c\S*')
-    let end = matchend(line , '\S*\%'.col.'c\S*')
-    if empty(word)
-        let word=input("Input A link name:")
-        if empty(word)
+
+    let obj = s:get_phase_obj()
+    if empty(obj)
+        let obj = s:get_cWORD_obj()
+    endif
+    if !empty(obj)
+        let word = obj.str
+        let idx  = obj.start + 1
+        let end  = obj.end + 1
+    else
+        let word = input("Input a link name:")
+        if word =~ '^\s*$'
             return
         endif
-        let idx =col
-        let end =col+1
+        let idx = col
+        let end = col
     endif
+
     let [ref, tar] = s:expand_link(word)
-    if line =~ '^$'
-        let line = ref
-    else
-        let line = substitute(line , '\%'.idx. 'c' . '.\{' .(end-idx+1).'}', 
-                    \ ' '.ref.' ' , '')
-    endif
+
+    let line = substitute(line, '\%'.idx.'c.\{'.(end-idx).'}', ref, '')
+
     call setline(row , line)
     call append(row, ["",tar])
-    exe "normal! jj$viW\<C-G>"
+    exe "normal! jj0f:2lv$\<C-G>"
 endfun "}}}
+"}}}
+" section title "{{{
 fun! riv#create#title(level) "{{{
     " Create a title of level.
     " If it's empty line, ask the title
@@ -237,6 +200,7 @@ fun! riv#create#title(level) "{{{
 endfun "}}}
 
 fun! s:get_sect_txt() "{{{
+    " get the section text of the row
     let row = line('.')
     if !exists('b:riv_obj')
         call riv#error('No buf object found.')
@@ -281,6 +245,8 @@ fun! riv#create#show_sect() "{{{
         echo 'You are not in any section.'
     endif
 endfun "}}}
+"}}}
+" scratch "{{{
 fun! riv#create#scratch() "{{{
     let scr = g:_riv_c.p[s:id()]._scratch_path . strftime("%Y-%m-%d") . '.rst'
     call s:split(scr)
@@ -289,6 +255,9 @@ let s:months = g:_riv_t.month_names
 fun! s:format_src_index() "{{{
     " category scratch by month and format it 4 items a line
     let path = g:_riv_c.p[s:id()]._scratch_path
+    if !isdirectory(path)
+        return -1
+    endif
     let files = split(glob(path.'*.rst'),'\n')
     "
     let dates = filter(map(copy(files), 'fnamemodify(v:val,'':t:r'')'),'v:val=~''[[:digit:]_-]\+'' ')
@@ -370,14 +339,15 @@ fun! riv#create#delete() "{{{
     redraw
     echo len(f_idx) ' relative link in index deleted.'
 endfun "}}}
-
+"}}}
+" todo helper "{{{
+let s:slash = has('win32') || has('win64') ? '\' : '/'
 fun! s:get_rel_to(dir,path) "{{{
     if a:dir == 'root'
         let root = s:get_root_path()
     else
         " use fnamemodify ':gs?\\?/?' ?
-        let slash = has('win32') || has('win64') ? '\' : '/'
-        let root = s:get_root_path().a:dir . slash
+        let root = s:get_root_path().a:dir . s:slash
     endif
     if match(a:path, root) == -1
         throw 'Riv: Not Same Path with Project'
@@ -395,7 +365,7 @@ fun! s:cache_todo(force) "{{{
         return
     endif
     let files = split(glob(root.'**/*.rst'))
-    let files  =filter(files, ' v:val !~ ''_build''')
+    let files = filter(files, ' v:val !~ ''_build''')
     let todos = []
     echo 'Caching...'
     let lines = []
@@ -464,8 +434,8 @@ endfun "}}}
 fun! s:lines2helper(lines) "{{{
     let list = []
     let todos = []
-    let path =[]
-    let lines =[]
+    let path = []
+    let lines = []
     let g:_riv_td_path = [path, lines]
     for line in a:lines
         let file=matchstr(line, '^F: \zs.*')
@@ -481,7 +451,7 @@ fun! s:lines2helper(lines) "{{{
             let lnum= matchstr(line, '^\d\+\ze:\t.*')
             call add(path, [f, lnum])
             call add(lines, td)
-            call add(todos , td)
+            call add(todos, td)
         endif
     endfor
     return list
@@ -590,6 +560,52 @@ fun! riv#create#todo_helper() "{{{
     let s:todo.input=""
     cal s:todo.win()
 endfun "}}}
+"}}}
+
+" misc "{{{
+fun! riv#create#foot() "{{{
+    " return a link target and ref def.
+    " DONE: 2012-06-10 get buf last footnote.
+    " DONE: 2012-06-10 they should add at different position.
+    "       current and last.
+    "   
+    " put cursor in last line and start backward search.
+    " get the last footnote and return.
+
+    let id = riv#link#get_last_foot()[1] + 1
+    let line = getline('.') 
+
+    if line =~ g:_riv_p.table
+        let tar = substitute(line,'\%' . col(".") . 'c' , ' ['.id.']_ ', '')
+    elseif line =~ '\S\@<!$'
+    " have \s before eol.
+        let tar = line."[".id."]_"
+    else
+        let tar = line." [".id."]_"
+    endif
+    let footnote = input("[".id."]: Your footnote message is?\n")
+    if empty(footnote) | return | endif
+    let def = ".. [".id."] ".footnote
+    call setline(line('.'),tar)
+    call append(line('$'),def)
+    
+endfun "}}}
+fun! riv#create#date(...) "{{{
+    if a:0 && a:1 == 1
+        exe "normal! a" . strftime('%Y-%m-%d %H:%M:%S') . "\<ESC>"
+    else
+        exe "normal! a" . strftime('%Y-%m-%d') . "\<ESC>"
+    endif
+endfun "}}}
+fun! riv#create#auto_mkdir() "{{{
+    let dir = expand('%:p:h')
+    if !isdirectory(dir)
+        call mkdir(dir,'p')
+    endif
+endfun "}}}
+"}}}
+
+" cmd helper "{{{
 fun! s:load_cmd() "{{{
     let list = items(g:riv_default.buf_maps)
     return map(list, 'string(v:val[0]).string(v:val[1])')
@@ -610,23 +626,11 @@ fun! riv#create#cmd_helper() "{{{
     let s:cmd.input=""
     cal s:cmd.win()
 endfun "}}}
+"}}}
 
-
-fun! riv#create#date(...) "{{{
-    if a:0 && a:1 == 1
-        exe "normal! a" . strftime('%Y-%m-%d %H:%M:%S') . "\<ESC>"
-    else
-        exe "normal! a" . strftime('%Y-%m-%d') . "\<ESC>"
-    endif
+fun! s:id() "{{{
+    return exists("b:riv_p_id") ? b:riv_p_id : g:riv_p_id
 endfun "}}}
-fun! riv#create#auto_mkdir() "{{{
-    let dir = expand('%:p:h')
-    if !isdirectory(dir)
-        call mkdir(dir,'p')
-    endif
-endfun "}}}
-
-
 fun! s:SID() "{{{
     return matchstr(expand('<sfile>'), '<SNR>\zs\d\+\ze_SID$')
 endfun "}}}
@@ -634,11 +638,5 @@ fun! riv#create#SID() "{{{
     return '<SNR>'.s:SID().'_'
 endfun "}}}
 
-fun! s:is_directory(name) "{{{
-    return a:name =~ '/$' 
-endfun "}}}
-fun! s:id() "{{{
-    return exists("b:riv_p_id") ? b:riv_p_id : g:riv_p_id
-endfun "}}}
 let &cpo = s:cpo_save
 unlet s:cpo_save

@@ -24,9 +24,9 @@ fun! riv#action#db_click(mouse) "{{{
         let line = getline(row)
         let col = col('.')
         if s:is_in_todo_item(line,col)
-            call riv#list#toggle_todo()
+            call riv#todo#toggle_todo()
         elseif s:is_in_todo_time(line,col)
-            call riv#list#change_date()
+            call riv#todo#change_date()
         else
             if a:mouse== 1
                 exe "normal! \<2-LeftMouse>"
@@ -95,7 +95,7 @@ fun! riv#action#ins_c_enter() "{{{
     else
         let cmd = ''
     endif
-    let cmd .= "\<C-O>:call riv#list#act(0)\<CR>\<Esc>A"
+    let cmd .= "\<C-O>:call riv#list#new(0)\<CR>\<Esc>A"
     return cmd
 endfun "}}}
 fun! riv#action#ins_s_enter() "{{{
@@ -105,7 +105,7 @@ fun! riv#action#ins_s_enter() "{{{
     else
         let cmd = ''
     endif
-    let cmd .= "\<C-O>:call riv#list#act(1)\<CR>\<Esc>A"
+    let cmd .= "\<C-O>:call riv#list#new(1)\<CR>\<Esc>A"
     return cmd
 endfun "}}}
 fun! riv#action#ins_m_enter() "{{{
@@ -115,7 +115,7 @@ fun! riv#action#ins_m_enter() "{{{
     else
         let cmd = ''
     endif
-    let cmd .= "\<C-O>:call riv#list#act(-1)\<CR>\<Esc>A"
+    let cmd .= "\<C-O>:call riv#list#new(-1)\<CR>\<Esc>A"
     return cmd
 endfun "}}}
 
@@ -125,7 +125,12 @@ fun! riv#action#ins_tab() "{{{
         if g:riv_ins_super_tab == 1 && pumvisible()
             return "\<C-N>"
         else
-            return "\<Tab>"
+            " if it's before the list item position. indent list.
+            if col('.') <= matchend(getline('.'), g:_riv_p.list_all)
+                return "\<C-O>:call riv#list#shift('+')\<CR>"
+            else
+                return "\<Tab>"
+            endif
         endif
     else
         " NOTE: Find the cell after table get formated.
@@ -137,7 +142,11 @@ fun! riv#action#ins_stab() "{{{
         if g:riv_ins_super_tab == 1 && pumvisible()
             return "\<C-P>"
         else
-            return "\<S-Tab>"
+            if col('.') <= matchend(getline('.'), g:_riv_p.list_all)
+                return "\<C-O>:call riv#list#shift('-')\<CR>"
+            else
+                return "\<S-Tab>"
+            endif
         endif
     else
         return "\<C-O>:call cursor(riv#table#prevcell())\<CR>"

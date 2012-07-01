@@ -3,489 +3,165 @@
 "    File: list.vim
 " Summary: the bullet list and enum list
 "  Author: Rykka G.Forest
-"  Update: 2012-06-15
+"  Update: 2012-06-30
 " Version: 0.5
 "=============================================
 let s:cpo_save = &cpo
 set cpo-=C
 
-" Todo: "{{{
-fun! riv#list#toggle_todo() "{{{
-" Toggle TO-DO item
-" if not list, return 
-" if is null todo item, add box/key (and timestamp if ts==2)
-" else if is idx todo item , switch to next box/key (don't change timestamp)
-"   if next box/key is end , (change timestamp if ts == 1 , add ts_end if ts == 2)
-"   if next box/key is start, (remove timestamp if ts ==1, remove ts_end if ts == 2)
-    let init_key = a:0  ? a:1 : 0
-    let [row, col] = [line('.'), col('.')]
-    let line = getline(row)
-    let [type,idx] = s:get_todo_id(line)
-    if type == -2 
-        echo "It's not a List, stopped..."
-        return 
-    endif
-    let prv_td_end = s:get_td_end(line)
-    let prv_len = strwidth(line)
-    if type == -1 
-        if init_key == 0 
-            let line = s:add_todo_box(line)
-        else
-            let line = s:add_todo_key(line, 0, 0)
-        endif
-        if g:riv_todo_timestamp == 2
-            let line = s:add_todo_tm_start(line)
-        endif
-    elseif type == 0
-        let max_i = s:box_lv_len()-1
-        if idx == max_i - 1       " change to max
-            let line = s:change_todo_box(line,idx+1)
-            if g:riv_todo_timestamp == 1
-                let line = s:add_todo_tm_start(line)
-            elseif g:riv_todo_timestamp == 2
-                let line = s:add_todo_tm_end(line)
-            endif
-        elseif idx == max_i       " change to 0
-            let line = s:change_todo_box(line,0)
-            if g:riv_todo_timestamp == 1
-                let line = s:rmv_todo_tm_start(line)
-            elseif g:riv_todo_timestamp == 2
-                let line = s:rmv_todo_tm_end(line)
-            endif
-        else
-            let line = s:change_todo_box(line,idx+1)
-        endif
-    elseif type > 0
-        let grp = type
-        let max_i = s:todo_lv_len(grp)-1
-        if idx == max_i - 1       " change to max
-            let line = s:change_todo_key(line,grp,idx+1)
-            if g:riv_todo_timestamp == 1
-                let line = s:add_todo_tm_start(line)
-            elseif g:riv_todo_timestamp == 2
-                let line = s:add_todo_tm_end(line)
-            endif
-        elseif idx == max_i       " change to 0
-            let line = s:change_todo_key(line,grp,0)
-            if g:riv_todo_timestamp == 1
-                let line = s:rmv_todo_tm_start(line)
-            elseif g:riv_todo_timestamp == 2
-                let line = s:rmv_todo_tm_end(line)
-            endif
-        else
-            let line = s:change_todo_key(line,grp,idx+1)
-        endif
-    endif
-
-    call setline(row, line)
-    let mod_len = strwidth(line)
-    let mod_td_end = prv_td_end + mod_len - prv_len
-    if col >= prv_td_end
-        let sft = mod_td_end - prv_td_end
-        call cursor(row, col + sft )
-    elseif col <= prv_td_end && col >= mod_td_end
-        call cursor(row, mod_td_end )
-    endif
-endfun "}}}
-fun! riv#list#del_todo(...) "{{{
-    let [row, col] = [line('.'), col('.')]
-    let line = getline(row)
-    let prv_td_end = s:get_td_end(line)
-    let prv_len = strwidth(line)
-    if line =~ g:_riv_p.todo_all
-        let line = s:rmv_todo_tm_end(line)
-        let line = s:rmv_todo_tm_start(line)
-        let line = s:rmv_todo_item(line)
-        call setline(row,line)
-        let mod_len = strwidth(line)
-        let mod_td_end = prv_td_end + mod_len - prv_len
-        if col >= prv_td_end
-            let sft = mod_td_end - prv_td_end
-            call cursor(row, col + sft )
-        elseif col <= prv_td_end && col >= mod_td_end
-            call cursor(row, mod_td_end )
-        endif
-    endif
-endfun "}}}
-fun! riv#list#todo_change_type(grp) "{{{
-    " change current line's todo type
-    " if it's not a list , add a list item
-    let [row, col] = [line('.'), col('.')]
-
-    let line = getline(row)
-    let [type,idx] = s:get_todo_id(line)
-    " record the todo item end idx to consider how to move cursor
-    let prv_td_end = s:get_td_end(line)
-    let prv_len = strwidth(line)
-    if type == -2
-        let list_str = s:list_str(1 , '', '' , "*", " ") 
-        let line = substitute(line, '^\s*', list_str, '')
-    elseif type == -1
-        " change idx of previous group to current grp
-        let max_i = s:todo_lv_len(a:grp)-1
-        if idx > max_i 
-            let idx = max_i
-        elseif idx < 0
-            let idx = 0
-        endif
-    endif
-
-    let line = s:rmv_todo_item(line)
-    if a:grp == 0 
-        let line = s:add_todo_box(line)
-        let line = s:change_todo_box(line, idx)
-    else
-        if a:grp > len(g:_riv_t.td_keyword_groups)
-            call riv#warning("The keyword group is not defined.")
-            return
-        endif
-        let line = s:add_todo_key(line, a:grp, idx)
-    endif
-    
-    
-    call setline(row, line)
-    let mod_len = strwidth(line)
-    let mod_td_end = prv_td_end + mod_len - prv_len
-    if col >= prv_td_end
-        let sft = mod_td_end - prv_td_end
-        call cursor(row, col + sft )
-    elseif col <= prv_td_end && col >= mod_td_end
-        call cursor(row, mod_td_end )
-    endif
-endfun "}}}
-
-fun! riv#list#todo_ask() "{{{
-    let grp =  inputlist(g:_riv_t.td_ask_keywords)
-    if  grp > 0 && grp <= len(g:_riv_t.td_keyword_groups)
-        call riv#list#todo_change_type(grp)
-    endif
-endfun "}}}
-
-fun! s:get_td_end(line) "{{{
-    let grps = [g:_riv_p.todo_tm_end, g:_riv_p.todo_tm_bgn, 
-               \g:_riv_p.todo_all,    g:_riv_p.list_all,
-               \'^\s*']
-    let i = 0
-    let td_end = -1
-    while td_end == -1
-        let td_end = matchend(a:line, grps[i])
-        let i += 1
-    endwhile
-    return td_end
-endfun "}}}
-fun! s:get_todo_id(line) "{{{
-    let idx  = match(a:line, g:_riv_p.list_all)
-    if idx == -1 | return [-2, 0]  |  endif          " not an list
-
-    let todo_match = matchlist(a:line,g:_riv_p.todo_all, idx)
-    if empty(todo_match)
-        return [-1, 0]                            
-    endif
-    
-    if !empty(todo_match[2])            " '[x] '
-        return s:get_box_id(todo_match[2][1])
-    elseif !empty(todo_match[3])        " 'KEYWORD '
-        return s:get_key_id(todo_match[3][:-2])
-    endif
-endfun "}}}
-fun! s:get_box_id(text) "{{{
-    " [0,id] : box
-    let idx = index(g:_riv_t.todo_levels, a:text)
-    if idx == -1 | return [0, -1]  | endif           " null idx match
-    return [0, idx]                                   " a box idx
-endfun "}}}
-fun! s:get_key_id(text) "{{{
-    " [1,id] : key grp[0] 
-    " [2,id] : key grp[1]
-    for i in range(len(g:_riv_t.td_keyword_groups))
-        let idx = index(g:_riv_t.td_keyword_groups[i], a:text)
-        if idx != -1
-            return [i+1, idx]             " group , idx
-        endif
-    endfor
-    return [-1, 0]                        " not keywords
-endfun "}}}
-fun! riv#list#get_td_stat(line) "{{{
-    let [grp,idx] = s:get_todo_id(a:line)
-    if grp < 0 || idx < 0
-        return -1
-    endif
-    let max_i = s:todo_lv_len(grp)-1
-    if max_i != 0
-        return (idx+0.0)/max_i
-    else
-        return -1
-    endif
-endfun "}}}
-
-fun! s:box_str(id) "{{{
-    return g:_riv_p.todo_levels[a:id]
-endfun "}}}
-fun! s:key_str(grp,id) "{{{
-    return g:_riv_p.todo_all_group[a:grp][a:id]
-endfun "}}}
-fun! s:add_todo_box(line) "{{{
-   return substitute(a:line, g:_riv_p.list_all, '\0[ ] ','')
-endfun "}}}
-fun! s:add_todo_key(line,grp,id) "{{{
-   return substitute(a:line, g:_riv_p.list_all, '\0'.g:_riv_t.todo_all_group[a:grp][a:id].' ','')
-endfun "}}}
-fun! s:change_todo_box(line,id) "{{{
-    let str = g:_riv_t.todo_levels[a:id]
-    return substitute(a:line, g:_riv_p.todo_box,'\1['.str.'] ','')
-endfun "}}}
-fun! s:change_todo_key(line,grp, id) "{{{
-    let str = g:_riv_t.todo_all_group[a:grp][a:id]
-    return substitute(a:line, g:_riv_p.todo_key,'\1'.str.' ','')
-endfun "}}}
-
-fun! s:input_date() "{{{
-    " Calendar(dir,year,month) 
-    " g:calendar_action: the action function(day, month, year, week, dir)
-    " g:calendar_sign: show sign of the day
-    if exists("*Calendar")
-        let s:cal_action_save = g:calendar_action
-        let g:calendar_action = "riv#list#feed_date"
-        call Calendar(1)
-    else
-        let year = str2nr(input("Input year :",strftime("%Y")))
-        let month = str2nr(input("Input month :",strftime("%m")))
-        let day = str2nr(input("Input date :",strftime("%d")))
-        call riv#list#feed_date(day,month,year)
-    endif
-    " return  year-month-day
-endfun "}}}
-fun! riv#list#feed_date(day,month,year,...) "{{{
-    " s:date_callback: the 
-    if exists("s:cal_action_save")
-        let g:calendar_action = s:cal_action_save
-        if bufname("%") == '__Calendar'
-            quit
-        endif
-    endif
-    let date =  printf("%04.4s-%02.2s-%02.2s", a:year,a:month,a:day)
-    call call(s:date_callback, add(s:date_call_args, date) )
-endfun "}}}
-fun! s:change_date(timestamp_id, buf, row, date) "{{{
-    let win = bufwinnr(a:buf)
-    if win == -1
-        echo "Could not find the editing buffer."
-        return 
-    elseif win != winnr()
-        exe win."wincmd w"
-    endif
-
-    let line = getline(a:row)
-    if a:timestamp_id == 1
-        let line = s:add_todo_tm_end(line, a:date)
-    elseif a:timestamp_id == 0
-        let line = s:add_todo_tm_start(line, a:date)
-    endif
-    call setline(a:row, line)
-endfun "}}}
-
-fun! riv#list#change_date() "{{{
-    let row = line('.')
-    let buf = bufnr('%')
-    let col = col('.')
-    let line = getline(row)
-    let pos = s:is_in_todo_time(line,col)
-    if pos == 0
-        echo "No timestamp to change..."
-        return
-    endif
-    let s:date_callback = "s:change_date"
-    if pos == 1
-        let s:date_call_args = [0, buf, row]
-    elseif pos == 2 
-        let s:date_call_args = [1, buf, row ]
-    endif
-    
-    call s:input_date()
-endfun "}}}
-
-fun! s:is_in_todo_time(line,col) "{{{
-    if a:line=~ g:_riv_p.todo_tm_end
-        if ( a:col < matchend(a:line, g:_riv_p.todo_tm_end)
-                \ && a:col > matchend(a:line, g:_riv_p.todo_tm_bgn.'\~ ') )
-            return 2
-        elseif (  a:col < matchend(a:line, g:_riv_p.todo_tm_bgn)
-                \ && a:col > matchend(a:line, g:_riv_p.todo_all))
-            return 1
-        endif
-    else
-        if a:col < matchend(a:line, g:_riv_p.todo_tm_bgn)
-                \ && a:col > matchend(a:line, g:_riv_p.todo_all)
-            return 1
-        endif
-   endif
-endfun "}}}
-fun! s:add_todo_tm_start(line,...) "{{{
-    let tms = a:0 ? a:1 : strftime(g:_riv_t.time_fmt)
-    " substitute bgn if exists
-    if  a:line =~ g:_riv_p.todo_tm_bgn
-        return substitute(a:line, g:_riv_p.todo_tm_bgn, '\1\2\3'.tms.' ','')
-    endif
-    return substitute(a:line, g:_riv_p.todo_all, '\1\2\3'.tms.' ','')
-endfun "}}}
-fun! s:add_todo_tm_end(line,...) "{{{
-    let tms = a:0 ? a:1 : strftime(g:_riv_t.time_fmt)
-    let line = a:line
-    " add a bgn timestamp if not exists.
-    if  line !~ g:_riv_p.todo_tm_bgn
-        let line = substitute(line, g:_riv_p.todo_all, '\1\2\3'.tms.' ','')
-    endif
-    " substitute end if exists
-    if line =~ g:_riv_p.todo_tm_end
-        return substitute(line, g:_riv_p.todo_tm_end, '\1\2\3\4~ '.tms.' ','')
-    endif
-    return substitute(line, g:_riv_p.todo_tm_bgn, '\1\2\3\4~ '.tms.' ','')
-endfun "}}}
-fun! s:rmv_todo_tm_start(line) "{{{
-    " remove end if exists
-    if  a:line =~ g:_riv_p.todo_tm_end
-        return substitute(a:line, g:_riv_p.todo_tm_end, '\1\2\3','')
-    endif
-    return substitute(a:line, g:_riv_p.todo_tm_bgn, '\1\2\3','')
-endfun "}}}
-fun! s:rmv_todo_tm_end(line) "{{{
-    return substitute(a:line, g:_riv_p.todo_tm_end, '\1\2\3\4','')
-endfun "}}}
-fun! s:rmv_todo_item(line) "{{{
-    return substitute(a:line, g:_riv_p.todo_all, '\1','')
-endfun "}}}
-
-fun! s:box_lv_len() "{{{
-    return len(g:_riv_t.todo_levels)
-endfun "}}}
-fun! s:todo_lv_len(grp) "{{{
-    return len(g:_riv_t.todo_all_group[a:grp])
-endfun "}}}
-"}}}
 
 " Search Relation: "{{{
 " the searchpos and setpos version
 " it's heavy though.
+fun! s:get_all_list(row) "{{{
+    let row = prevnonblank(a:row)
+
+    let save_pos = getpos('.')
+
+    while getline(row) !~ g:_riv_p.list_all && row != 0
+        let idt = indent(row)
+        if idt == 0 
+            let row = 0
+            break
+        endif
+        let idt_ptn = '^\s\{,'.(idt-1).'}\S'
+        call cursor(prevnonblank(row-1),1)
+        let [row,col] = searchpos(idt_ptn, 'nbc',0,100)
+    endwhile
+    
+    call setpos('.',save_pos)
+
+    return row
+endfun "}}}
 fun! s:get_list(row) "{{{
-    " To find if a row is in  a list's arrange. 
+    let row = prevnonblank(a:row)
+
+    let save_pos = getpos('.')
+
+    while getline(row) !~ g:_riv_p.list_b_e && row != 0
+        let idt = indent(row)
+        if idt == 0 
+            let row = 0
+            break
+        endif
+        let idt_ptn = '^\s\{,'.(idt-1).'}\S'
+        call cursor(prevnonblank(row-1),1)
+        let [row,col] = searchpos(idt_ptn, 'nbc',0,100)
+    endwhile
+    
+    call setpos('.',save_pos)
+
+    return row
+endfun "}}}
+fun! s:get_list_(row) "{{{
+    " To find if a row is in  a list's range. 
     " this list's indent should smaller than current line (when not list).
-    " return 0 if break by none list '^\S'.
+    " return 0 if '^\S' or not find
 
     let c_row = prevnonblank(a:row)
-    if getline(c_row) =~ g:_riv_p.list_all       " it's list
-        return c_row
+    if getline(c_row) =~ g:_riv_p.list_b_e
+        return c_row 
     else
         let c_idt = indent(c_row)
-        if c_idt == 0       " it's '^\S'
+        if c_idt == 0 
             return 0
-        else
-            let save_pos = getpos('.')
-            let [row,col] = searchpos(g:_riv_p.list_all.'|^\S', 'wnb',0,100)
-            let s_idt = indent(row)
-            while c_idt <= s_idt        " find a list have less indent
-                if getline(row) =~ '^\S'
-                    let row = 0
-                    break         " could not find a list.
-                endif
-                " goto prev line
-                exe prevnonblank(row-1)
-                let [row,col] = searchpos(g:_riv_p.list_all.'|^\S', 'wnb',0,100)
-                let s_idt = indent(row)
-            endwhile
-            call setpos('.',save_pos)
-            return row
         endif
+        let idt_ptn = '^\s{,'.(c_idt-1).'}\S'
+        let ptn = g:_riv_p.list_b_e.'|'.idt_ptn
+        let save_pos = getpos('.')
+
+        let row = c_row
+        let s_idt = c_idt + 1
+        while ( getline(row) !~ g:_riv_p.list_b_e || s_idt>= c_idt ) && row!=0
+            call cursor(prevnonblank(row-1),1)
+            let [row,col] = searchpos(ptn, 'wnbc',0,100)
+            if s_idt == 0
+                let row =0
+                break
+            endif
+            if s_idt < c_idt 
+                let c_idt = s_idt
+            endif
+            let s_idt = indent(row)
+        endwhile
+
+        call setpos('.',save_pos)
+        return row
     endif
 endfun "}}}
 fun! s:get_older(row) "{{{
-    " check if a list item have an older .
-    let c_row = s:get_list(a:row)
-    if c_row == 0
+    " check if a list item have an older item, 
+    " which have same indent with it
+    let row = s:get_list(a:row)
+    if row == 0
         return 0
     else
+
         let save_pos = getpos('.')
-        exe prevnonblank(c_row-1)
-        let c_idt = indent(c_row)
-        let [row,col] = searchpos(g:_riv_p.list_all.'|^\S', 'wnb',0,100)
-        let s_idt = indent(row)
-        while c_idt < s_idt    " find a list have 
-                               " same list level           
-            if getline(row) =~ '^\S'
+
+        let c_idt = indent(row)
+        let idt = c_idt
+
+        let idt_ptn = '^\s\{,'.idt.'}\S'
+        call cursor(prevnonblank(row-1),1)
+        let [row,col] = searchpos(idt_ptn, 'nbc',0,100)
+        
+        while getline(row) !~ g:_riv_p.list_b_e && row != 0
+            let idt = indent(row)
+            if idt <= c_idt
                 let row = 0
-                break         " could not find a list.
+                break
             endif
-            " goto prev line
-            exe prevnonblank(row-1)
-            let [row,col] = searchpos(g:_riv_p.list_all.'|^\S', 'wnb',0,100)
-            let s_idt = indent(row)
+            let idt_ptn = '^\s\{,'.idt.'}\S'
+            call cursor(prevnonblank(row-1),1)
+            let [row,col] = searchpos(idt_ptn, 'nbc',0,100)
         endwhile
+
         call setpos('.',save_pos)
-        if s_idt == c_idt
-            return getline(row) =~ '^\S' ? 0 : row
-        else
-            return 0
-        endif
+
+        return idt == c_idt ? row : 0
     endif
 endfun "}}}
 fun! s:get_parent(row) "{{{
-    " check if a list item have an older .
-    let c_row = s:get_list(a:row)
-    if c_row == 0
+   
+    let row = s:get_list(a:row)
+    if row == 0
         return 0
     else
-        let c_idt = indent(c_row)
-        if c_idt == 0
-            return 0
-        endif
+
         let save_pos = getpos('.')
-        exe prevnonblank(c_row-1)
-        let [row,col] = searchpos(g:_riv_p.list_all.'|^\S', 'wnb',0,100)
-        let s_idt = indent(row)
-        while c_idt <= s_idt  " find a list have 
-                              " same list level           
-            if getline(row) =~ '^\S'
-                let row = 0
-                break         " could not find a list.
-            endif
-            " goto prev line
-            exe prevnonblank(row-1)
-            let [row,col] = searchpos(g:_riv_p.list_all.'|^\S', 'wnb',0,100)
-            let s_idt = indent(row)
+
+        let c_idt = indent(row)
+        let idt = c_idt
+
+        let idt_ptn = '^\s\{,'.(idt-1).'}\S'
+        call cursor(prevnonblank(row-1),1)
+        let [row,col] = searchpos(idt_ptn, 'nbc',0,100)
+        
+        while getline(row) !~ g:_riv_p.list_b_e && row != 0
+            let idt = indent(row)
+            let idt_ptn = '^\s\{,'.idt.'}\S'
+            call cursor(prevnonblank(row-1),1)
+            let [row,col] = searchpos(idt_ptn, 'nbc',0,100)
         endwhile
+
         call setpos('.',save_pos)
-        if s_idt < c_idt
-            return row
-        else
-            return 0
-        endif
+
+        return idt < c_idt ? row : 0
     endif
 endfun "}}}
-fun! s:get_child(row) "{{{
-    let child = []
-    let c_row = s:get_list(a:row)
-    if c_row == 0
-        return child
-    else
-        let c_idt = indent(c_row)
-        let save_pos = getpos('.')
-        exe nextnonblank(c_row+1)
-        let [row,col] = searchpos(g:_riv_p.list_all.'|^\S', 'wn',0,100)
-        let s_idt = indent(row)
-        while c_idt < s_idt
-            if getline(row) =~ '^\S'
-                break
-            else 
-                call add(child, row)
-            endif
-            " goto next line
-            exe nextnonblank(row)
-            let [row,col] = searchpos(g:_riv_p.list_all.'|^\S', 'wn',0,100)
-            let s_idt = indent(row)
-        endwhile
-        call setpos('.',save_pos)
-        return child
-        endif
-    endif
+fun! s:get_tree(start,end) "{{{
+    " create root and get children
+    
+endfun "}}}
+fun! s:check_l() "{{{
+    
+endfun "}}}
+fun! s:add_l() "{{{
+    
+endfun "}}}
+fun! s:set_obj() "{{{
+    
 endfun "}}}
 
 " the buf obj dict version.
@@ -538,31 +214,31 @@ endfun "}}}
 "}}}
 
 " List Level: "{{{
-fun! s:is_roman(row) "{{{
-    let line = getline(a:row)
-    if line =~ '^\c\s*(\=[imlcxvd][).]'
-        let older = s:get_older(a:row)
-        if older==0 
-            return line =~ '^\c\s*(\=i[).]'
-        else
-            return getline(older) =~ '^\c\s*(\=[imlcxvd]\{2,}[).]'
-        endif
-    endif
-    return 0
-endfun "}}}
-fun! riv#list#act(act) "{{{
+fun! riv#list#new(act) "{{{
+    " change the list type of current line with act: '1' , '0' ,'-1'
+    " used to create new list, child list, parent list
     let row = line('.')
-    let cur_list = s:get_list(row)
+    let cur_list = s:get_all_list(row)
     if cur_list == 0
         let list_str = s:list_str(1 , '', '' , "*", " ") 
     else
         let line = getline(cur_list)
+
+        " if it's field list , then just use it's indent.
+        if line =~ g:_riv_p.field_list_spl
+            let idt = repeat(' ', indent(cur_list))
+            let line = getline('.')
+            let line = substitute(line, '^\s*', idt, '')
+            call setline(row, line)
+            return
+        endif
         if line =~ '^\c\s*(\=[imlcxvd][).]'
             let is_roman = s:is_roman(cur_list)
         else
             let is_roman = 0
         endif
         let idt = ''
+        " create a parent list , we should find the parent's indent
         if a:act == -1
             let parent = s:get_parent(cur_list)
             let idt = parent ? repeat(' ',indent(parent)) : ''
@@ -570,11 +246,7 @@ fun! riv#list#act(act) "{{{
         let list_str = riv#list#line_str(line, a:act, idt, is_roman)
     endif
     let line = getline('.')
-    if line=~ g:_riv_p.list_all
-        let line = substitute(line, g:_riv_p.list_all , list_str, '')
-    else
-        let line = substitute(line, '^\s*', list_str, '')
-    endif
+    let line = substitute(line, '^\s*', list_str, '')
     call setline(row, line)
 endfun "}}}
 fun! riv#list#line_str(line, act, idt,...) "{{{
@@ -598,6 +270,21 @@ fun! riv#list#line_str(line, act, idt,...) "{{{
         let num = s:next_list_num(num, is_roman)
     endif
     return s:list_str(type,idt,num,attr,space)
+endfun "}}}
+fun! s:is_roman(row) "{{{
+    let line = getline(a:row)
+    if line =~ '^\c\s*(\=[imlcxvd][).]\s'
+        let older = s:get_older(a:row)
+        if older==0 
+            " if no older , then 'i' is roman
+            return line =~ '^\c\s*(\=i[).]\s'
+        else
+            " if has older , then when older is 'rr' is roman
+            return getline(older) =~ '^\c\s*(\=[imlcxvd]\{2,}[).]\s'
+        endif
+    else
+        return line =~ '^\c\s*(\=[imlcxvd]\{2,}[).]\s'
+    endif
 endfun "}}}
 "    *   +   -            =>
 "    1.  A.  a.  I.  i.    =>
@@ -661,7 +348,7 @@ fun! s:nr2listnum(n,type) "{{{
     if a:type=='1'
         return ''
     elseif a:type=='2' || a:type=='3'
-        return a:n<=0 ? 1 : 0
+        return a:n<=0 ? 1 : a:n
     elseif a:type=='4' || a:type=='5'
         return a:n > 26 ? 'Z' : a:n <= 0 ? 'A' : nr2char(a:n+64)
     elseif a:type=='6' || a:type=='7'
@@ -710,8 +397,8 @@ fun! riv#list#level(line,...) "{{{
 endfun "}}}
 let s:list_stats= [
 \ [1, '',  '*'],  [1, '',  '+'] , [1, '',   '-'],
-\ [2, '1', '.'], [4, 'A', '.'], [4, 'a', '.'], [6, 'I', '.'], [6, 'i', '.'], 
-\ [2, '1', ')'], [4, 'A', ')'], [4, 'a', ')'], [6, 'I', ')'], [6, 'i', ')'], 
+\ [2, '1', '.'],  [4, 'A', '.'],  [4, 'a', '.'],  [6, 'I', '.'],  [6, 'i', '.'], 
+\ [2, '1', ')'],  [4, 'A', ')'],  [4, 'a', ')'],  [6, 'I', ')'],  [6, 'i', ')'], 
 \ [3, '1', '()'], [5, 'A', '()'], [5, 'a', '()'], [7, 'I', '()'], [7, 'i', '()'],
 \]
 fun! s:stat2level(type, num, attr) "{{{
@@ -764,7 +451,7 @@ fun! riv#list#toggle_type(i) "{{{
         let list_str = s:list_str(1 , '', '' , "*", " ") 
         let line = substitute(line, '^\s*', list_str, '')
     else
-        let prv_ls_end = matchend(line, g:_riv_p.list_all)
+        let prv_ls_end = matchend(line, g:_riv_p.list_b_e)
         let level = s:stat2level(type, num, attr) 
         if a:i == 0
             let list_str = idt
@@ -772,7 +459,7 @@ fun! riv#list#toggle_type(i) "{{{
             let [type,num,attr] = s:level2stat(level+a:i)
             let list_str = s:list_str(type,idt,num,attr,space)
         endif
-        let line = substitute(line, g:_riv_p.list_all , list_str, '')
+        let line = substitute(line, g:_riv_p.list_b_e , list_str, '')
     endif
     call setline(row, line)
     let mod_len = strwidth(line)
@@ -786,18 +473,27 @@ fun! riv#list#toggle_type(i) "{{{
 endfun "}}}
 fun! s:list_shift_len(row,len) "{{{
     let line = getline(a:row)
+    if line=~ '^\s*$'
+        return
+    endif
+
+    " sub the line's indentation
     let line = substitute(line,'^\s*', repeat(' ',indent(a:row)),'g')
-    let idt = repeat(' ', abs(a:len))
-    if a:len>=0
+    if a:len>0
         let act = 1
         let line = substitute(line,'^',repeat(' ',a:len),'')
-    else
+    elseif a:len< 0
         let act = -1
         let line = substitute(line,'^\s\{,'.abs(a:len).'}','','')
+    else
+        let act = 0
     endif
-    let [type , idt , num , attr, space] =  riv#list#stat(line)
-    let nr = s:listnum2nr(num)
-    if type != -1
+    
+    " when it's first and it's 'i', we should make sure it' roman.
+    let is_roman = s:is_roman(a:row)
+    let [type , idt , num , attr, space] =  riv#list#stat(line, is_roman)
+    let nr = s:listnum2nr(num, is_roman)
+    if type != -1 && act != 0
         if act == 1
             let level = s:stat2level(type, num, attr) 
             let [type,num,attr] = s:level2stat(level+1)
@@ -805,33 +501,114 @@ fun! s:list_shift_len(row,len) "{{{
             let level = s:stat2level(type, num, attr) 
             let [type,num,attr] = s:level2stat(level-1)
         endif
+
         if num =~ '\u'
             let num = toupper(s:nr2listnum(nr,type))
         else
             let num = tolower(s:nr2listnum(nr,type))
         endif
         let list_str =  s:list_str(type,idt,num,attr,space)
-        let line = substitute(line, g:_riv_p.list_all , list_str, '')
+        let line = substitute(line, g:_riv_p.list_b_e , list_str, '')
     endif
+
+    call setline(a:row,line)
+
+    if type != -1
+        call s:fix_nr(a:row)
+    else
+        call s:fix_idt(a:row)
+    endif
+endfun "}}}
+fun! s:fix_idt(row) "{{{
+    " if it's not a list , then the indent should fixed based on current list
+    let list = s:get_list(a:row-1)
+    let line = getline(a:row)
+    if list
+        let f_idt = matchend(getline(list), g:_riv_p.list_all)
+        let idt = matchend(line,'^\s*')
+        " if the ident is between the fix + item len and indent
+        if (idt > indent(list) && idt <= f_idt+s:get_item_length(list) )
+            \ || (idt == indent(list) && list == a:row-1)
+            let line = substitute(line, '^\s*', repeat(' ',f_idt), '')
+            call setline(a:row,line)
+        endif
+    endif
+endfun "}}}
+
+fun! s:fix_nr(row) "{{{
+    " nr are based on previous list item
+    let line = getline(a:row)
+    let older = s:get_older(a:row)
+    if older 
+        let is_roman = s:is_roman(older)
+        let oline = getline(older)
+        let [type , idt , num , attr, space] = riv#list#stat(oline, is_roman)
+        let onr = s:listnum2nr(num, is_roman)
+        let nr = onr + 1
+    else
+        let is_roman = s:is_roman(a:row)
+        let [type , idt , num , attr, space] = riv#list#stat(line, is_roman)
+        " let nr = s:listnum2nr(num, is_roman)
+        let nr = 1
+    endif
+    if num =~ '\u'
+        let num = toupper(s:nr2listnum(nr,type))
+    else
+        let num = tolower(s:nr2listnum(nr,type))
+    endif
+    let list_str =  s:list_str(type,idt,num,attr,space)
+    let line = substitute(line, g:_riv_p.list_b_e , list_str, '')
     call setline(a:row,line)
 endfun "}}}
-fun! riv#list#shift(direction) range "{{{
-    " > to add indent, < to rmv indent 
-    " if line is list then change bullet.
-    let line = getline(a:firstline) 
-    let [type , idt , num , attr, space] = riv#list#stat(line)
-    if type == -1
-        let ln = &shiftwidth
+fun! s:get_item_length(row) "{{{
+    let end = matchend(getline(a:row), g:_riv_p.list_all)
+    if end != -1
+        return end - indent(a:row)
     else
-        let ln = len(space) + len(num . attr)
+        return 0
+    endif
+endfun "}}}
+fun! riv#list#shift(direction) range "{{{
+    " direction "+" or "-" or "="
+    " if firstline is list then whole indent based on parent item
+    " if it's not list, then whole indent based on shiftwidth
+    " the list in it will change it's level and number
+    let line = getline(a:firstline) 
+    if a:direction !="="
+        let end =  matchend(getline(a:firstline), g:_riv_p.list_all)
+        if end != -1
+            let ln = end - indent(a:firstline)
+        else
+            let ln = &shiftwidth
+        endif
+    endif
+    if a:direction=='-'
+        let prev = s:get_parent(a:firstline)
+        " if has parent, and the sft is smaller or equal than idt
+        " shift to parent
+        if prev 
+            let sft = indent(a:firstline) - indent(prev)
+            if sft <= ln
+                let ln = sft
+            endif
+        endif
+    elseif a:direction == "+"
+        let prev = s:get_older(a:firstline)
+        if prev 
+            " if has older , use older's item length
+            let ln = matchend(getline(prev), g:_riv_p.list_all) - indent(prev)
+        endif
     endif
     if a:direction=="-"
         let vec = -ln
-    else
+    elseif a:direction =="+"
         let vec = ln
+    else
+        let vec = 0
     endif
     if a:firstline == a:lastline
         call s:list_shift_len(a:firstline, vec)
+        call cursor(line('.'), col('.')+vec)
     else
         for line in range(a:firstline,a:lastline)
             call s:list_shift_len(line, vec)

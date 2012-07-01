@@ -3,7 +3,7 @@
 "    File: riv.vim
 " Summary: Riv autoload main
 "  Author: Rykka G.Forest
-"  Update: 2012-06-27
+"  Update: 2012-06-30
 " Version: 0.5
 "=============================================
 let s:cpo_save = &cpo
@@ -112,8 +112,9 @@ let s:default.options = {
     \'section_levels'     : '=-~"''`',
     \'fuzzy_help'         : 0,
     \'auto_format_table'  : 1,
-    \'fold_text_align'    : 'right',
+    \'fold_info_pos'      : 'right',
     \'ins_super_tab'      : 1,
+    \'temp_path'          : "",
     \'month_names'        : 'January,February,March,April,May,June,July,'
                           \.'August,September,October,November,December',
     \}
@@ -125,22 +126,24 @@ let s:default.maps = {
     \'RivLinkNext'       : 'call riv#link#finder("f")',
     \'RivLinkPrev'       : 'call riv#link#finder("b")',
     \'RivLinkDBClick'    : 'call riv#action#db_click(1)',
+    \'RivLinkEnter'      : 'call riv#action#db_click(0)',
     \'RivListShiftRight' : 'call riv#list#shift("+")',
     \'RivListShiftLeft'  : 'call riv#list#shift("-")',
-    \'RivListNewList'    : 'call riv#list#act(0)',
-    \'RivListSubList'    : 'call riv#list#act(1)',
-    \'RivListSupList'    : 'call riv#list#act(-1)',
+    \'RivListFormat'     : 'call riv#list#shift("=")',
+    \'RivListNewList'    : 'call riv#list#new(0)',
+    \'RivListSubList'    : 'call riv#list#new(1)',
+    \'RivListSupList'    : 'call riv#list#new(-1)',
     \'RivListTypeRemove' : 'call riv#list#toggle_type(0)',
     \'RivListTypeNext'   : 'call riv#list#toggle_type(1)',
     \'RivListTypePrev'   : 'call riv#list#toggle_type(-1)',
-    \'RivTodoToggle'     : 'call riv#list#toggle_todo()',
-    \'RivTodoDel'        : 'call riv#list#del_todo()',
-    \'RivTodoDate'       : 'call riv#list#change_date()',
-    \'RivTodoAsk'        : 'call riv#list#todo_ask()',
-    \'RivTodoType1'      : 'call riv#list#todo_change_type(0)',
-    \'RivTodoType2'      : 'call riv#list#todo_change_type(1)',
-    \'RivTodoType3'      : 'call riv#list#todo_change_type(2)',
-    \'RivTodoType4'      : 'call riv#list#todo_change_type(3)',
+    \'RivTodoToggle'     : 'call riv#todo#toggle_todo()',
+    \'RivTodoDel'        : 'call riv#todo#del_todo()',
+    \'RivTodoDate'       : 'call riv#todo#change_date()',
+    \'RivTodoAsk'        : 'call riv#todo#todo_ask()',
+    \'RivTodoType1'      : 'call riv#todo#todo_change_type(0)',
+    \'RivTodoType2'      : 'call riv#todo#todo_change_type(1)',
+    \'RivTodoType3'      : 'call riv#todo#todo_change_type(2)',
+    \'RivTodoType4'      : 'call riv#todo#todo_change_type(3)',
     \'RivViewScratch'    : 'call riv#create#view_scr()',
     \'RivTitle1'         : 'call riv#create#title(1)',
     \'RivTitle2'         : 'call riv#create#title(2)',
@@ -155,11 +158,11 @@ let s:default.maps = {
     \'RivTestObj'        : 'call riv#test#show_obj()',
     \'RivTableFormat'    : 'call riv#table#format()',
     \'Riv2HtmlIndex'     : 'call riv#publish#browse()',
-    \'Riv2HtmlAndBrowse' : 'call riv#publish#file2html(1)',
-    \'Riv2HtmlFile'      : 'call riv#publish#file2html(0)',
-    \'Riv2HtmlProject'   : 'call riv#publish#proj2html()',
+    \'Riv2HtmlAndBrowse' : 'call riv#publish#file2("html",1)',
+    \'Riv2HtmlFile'      : 'call riv#publish#file2("html",0)',
+    \'Riv2HtmlProject'   : 'call riv#publish#proj2("html")',
     \'Riv2Odt'           : 'call riv#publish#file2("odt",1)',
-    \'Riv2S5'            : 'call riv#publish#file2("s5",0)',
+    \'Riv2S5'            : 'call riv#publish#file2("s5",1)',
     \'Riv2Xml'           : 'call riv#publish#file2("xml",1)',
     \'Riv2Latex'         : 'call riv#publish#file2("latex",1)',
     \'Riv2BuildPath'     : 'call riv#publish#path()',
@@ -180,6 +183,7 @@ let s:default.g_maps = {
     \'Riv2HtmlIndex'     : ['wi', '<C-W><C-I>'] ,
     \'RivAsk'            : ['wa', '<C-W><C-A>'] ,
     \'RivScratchCreate'  : ['cc', '<C-C><C-C>'] ,
+    \'RivScratchView'    : ['cv', '<C-C><C-V>'] ,
     \'RivTodoHelper'     : ['ht', '<C-h><C-t>'] ,
     \}
 let s:default.fold_maps = { 
@@ -195,12 +199,14 @@ let s:default.fold_maps = {
 " c => scratch
 " 2 => convert
 let s:default.buf_maps = {
-    \'RivLinkDBClick'    : [['<CR>', '<KEnter>', '<2-LeftMouse>'],  '',  ''],
+    \'RivLinkDBClick'    : [['<2-LeftMouse>'],  '',  ''],
+    \'RivLinkEnter'      : [['<CR>', '<KEnter>'],  '',  ''],
     \'RivLinkOpen'       : ['',  'n',  'ko'],
     \'RivLinkNext'       : ['<TAB>',    'n',  'kn'],
     \'RivLinkPrev'       : ['<S-TAB>',  'n',  'kp'],
     \'RivListShiftRight' : [['>', '<C-ScrollwheelDown>' ],  'mi',  'lu'],
     \'RivListShiftLeft'  : [['<', '<C-ScrollwheelUp>'],  'mi',  'ld'],
+    \'RivListFormat'     : [['='],  'mi',  'l='],
     \'RivListTypeNext'   : ['',  'mi',  'l2'],
     \'RivListTypePrev'   : ['',  'mi',  'l1'],
     \'RivListTypeRemove' : ['',  'mi',  'lx'],
@@ -229,9 +235,7 @@ let s:default.buf_maps = {
     \'Riv2S5'            : ['',  'm',   '2ss'],
     \'Riv2Xml'           : ['',  'm',   '2xx'],
     \'Riv2BuildPath'     : ['',  'm',   '2b'],
-    \'RivScratchView'    : ['',  'm',   'cv'],
-    \'RivScratchCreate'  : ['',  'm',   'cc'],
-    \'RivDeleteFile'     : ['',  'm',   'df'],
+    \'RivDelete'         : ['',  'm',   'df'],
     \'RivCreateLink'     : ['',  'mi',  'il'],
     \'RivCreateDate'     : ['',  'mi',  'id'],
     \'RivCreateFoot'     : ['',  'mi',  'if'],
@@ -263,6 +267,8 @@ let s:default.menus = [
     \['Choose\ Index'                     , 'wa'                     , 'RivAsk'            ]   ,
     \['Helper.Todo\ Helper'               , 'th'                     , 'RivTodoHelper'     ]   ,
     \['Helper.Update\ Todo\ Cache'        , 'uc'                     , 'RivTodoUpdateCache']   ,
+    \['Scratch.Create\ Scratch'           , 'cc'                     , 'RivScratchCreate'  ]   ,
+    \['Scratch.View\ Index'               , 'cv'                     , 'RivScratchView'    ]   ,
     \['--Action--'                        , '  '                     , '  '                ]   ,
     \['Title.Create\ level1\ Title'       , 's1'                     , 'RivTitle1'         ]   ,
     \['Title.Create\ level2\ Title'       , 's2'                     , 'RivTitle2'         ]   ,
@@ -282,7 +288,7 @@ let s:default.menus = [
     \['List.Next\ Type'                   , 'l2'                     , 'RivListTypeNext'   ]   ,
     \['List.Remove\ List\ Symbol'         , 'lx'                     , 'RivListTypeRemove' ]   ,
     \['Todo.Toggle\ Todo'                 , 'ee'                     , 'RivTodoToggle'     ]   ,
-    \['Todo.Del\ Todo'                    , 'ex'                     , 'RivTodoDel'        ]   ,
+    \['Todo.Delete\ Todo'                 , 'ex'                     , 'RivTodoDel'        ]   ,
     \['Todo.Change\ Date'                 , 'ed'                     , 'RivTodoDate'       ]   ,
     \['Todo.Todo\ Type0'                  , 'e`'                     , 'RivTodoType0'      ]   ,
     \['Todo.Todo\ Type1'                  , 'e1'                     , 'RivTodoType1'      ]   ,
@@ -290,6 +296,7 @@ let s:default.menus = [
     \['Todo.Todo\ Type3'                  , 'e3'                     , 'RivTodoType3'      ]   ,
     \['Create.Datestamp'                  , 'id'                     , 'RivCreateDate'     ]   ,
     \['Create.Timestamp'                  , 'it'                     , 'RivCreateTime'     ]   ,
+    \['Delete.Delete\ Current\ File'      , 'df'                     , 'RivDelete'         ]   ,
     \['--Convert---'                      , '  '                     , '  '                ]   ,
     \['Convert.Open\ Build\ Path'         , '2b'                     , 'Riv2BuildPath'     ]   ,
     \['Convert.to\ Html.Browse\ Current'  , '2hh'                    , 'Riv2HtmlAndBrowse' ]   ,
@@ -300,9 +307,6 @@ let s:default.menus = [
     \['Convert.to\ Latex'                 , '2ll'                    , 'Riv2Latex'         ]   ,
     \['Convert.to\ S5'                    , '2ss'                    , 'Riv2S5'            ]   ,
     \['Convert.to\ Xml'                   , '2xx'                    , 'Riv2Xml'           ]   ,
-    \['Scratch.Create\ Scratch'           , 'cc'                     , 'RivScratchCreate'  ]   ,
-    \['Scratch.View\ Index'               , 'cv'                     , 'RivScratchView'    ]   ,
-    \['Delete.Delete\ Current'            , 'df'                     , 'RivDelete'         ]   ,
     \['--Format---'                       , '  '                     , '  '                ]   ,
     \['Table.Format'                      , 'ft'                     , 'RivTableFormat'    ]   ,
     \['--Fold---'                         , '  '                     , '  '                ]   ,
@@ -383,7 +387,7 @@ if !exists("g:_riv_c")
     let g:_riv_c.p_basic = {
         \'path'               : '~/Documents/Riv',
         \'build_path'         : '_build',
-        \'scratch_path'       : 'scratch' ,
+        \'scratch_path'       : 'Scratch' ,
         \}
     let g:_riv_c.p = []
     if exists("g:riv_projects") && type(g:riv_projects) == type([])
@@ -406,23 +410,27 @@ if !exists("g:_riv_c")
         return a:name =~ '/$' 
     endfun "}}}
 
+    let s:slash = has('win32') || has('win64') ? '\' : '/'
     for proj in g:_riv_c.p
         let root = expand(proj.path)
-        let slash = has('win32') || has('win64') ? '\' : '/'
-        let proj._root_path = s:is_directory(root) ? root : root . slash
+        let proj._root_path = s:is_directory(root) ? root : root . s:slash
         if s:is_relative(proj.build_path)
             let b_path =  proj._root_path . proj.build_path
-            let proj._build_path =  s:is_directory(b_path) ?  b_path : b_path . slash
+            let proj._build_path =  s:is_directory(b_path) ?  b_path 
+                        \ : b_path . s:slash
         else
             let b_path =   expand(proj.build_path)
-            let proj._build_path =  s:is_directory(b_path) ?  b_path : b_path . slash
+            let proj._build_path =  s:is_directory(b_path) ?  b_path 
+                        \ : b_path . s:slash
         endif
         if s:is_relative(proj.scratch_path)
             let s_path =  proj._root_path . proj.scratch_path
-            let proj._scratch_path =  s:is_directory(s_path) ?  s_path : s_path . slash
+            let proj._scratch_path =  s:is_directory(s_path) ?  s_path 
+                        \ : s_path . s:slash
         else
             let s_path =   expand(proj.scratch_path)
-            let proj._scratch_path =  s:is_directory(s_path) ?  s_path : s_path . slash
+            let proj._scratch_path =  s:is_directory(s_path) ?  s_path 
+                        \ : s_path . s:slash
         endif
     endfor
     "}}}
@@ -474,11 +482,16 @@ if !exists("g:_riv_c")
     let g:_riv_p.bullet_list = '\v^\s*[-*+]\s+'
     let g:_riv_p.enumerate_list1 = '\v\c^\s*%(\d+|[#a-z]|[imlcxvd]+)[.)]\s+'
     let g:_riv_p.enumerate_list2 = '\v\c^\s*\(%(\d+|[#a-z]|[imlcxvd]+)\)\s+'
-    let g:_riv_p.list_all = g:_riv_p.bullet_list.'|'.g:_riv_p.enumerate_list1
+    let g:_riv_p.field_list_spl = '\v^\s*:[^:]+:\s+'
+
+    let g:_riv_p.list_b_e = g:_riv_p.bullet_list.'|'.g:_riv_p.enumerate_list1
                 \.'|'.g:_riv_p.enumerate_list2
+
+    let g:_riv_p.list_item = '%([-*+]|%(\d+|[#a-z]|[imlcxvd]+)[.)]|\(%(\d+|[#a-z]|[imlcxvd]+)\))'
+    let g:_riv_p.list_all = g:_riv_p.list_b_e . '|'. g:_riv_p.field_list_spl
     
     
-    let g:_riv_p.field_list= '^\s*:[^:]\+:\s\+\ze\S.\+[^:]$'
+    let g:_riv_p.field_list= '\v^\s*:[^:]+:\s+\ze\S.+[^:]$'
 
     " sub1 (indent)
     " sub2 bullet
@@ -510,16 +523,24 @@ if !exists("g:_riv_c")
                 \ '(v:val+1).".". td_key_list[v:val]')
     let g:_riv_t.td_keyword_groups = map(td_key_list, 
                 \ 's:normlist(split(v:val,'',''))')
+    " create a keyword index dic for query
+    let g:_riv_t.td_keyword_dic = {}
+    for i in range(len(g:_riv_t.td_keyword_groups))
+        for j in range(len(g:_riv_t.td_keyword_groups[i]))
+            " the 0 group is for td box.
+            let g:_riv_t.td_keyword_dic[g:_riv_t.td_keyword_groups[i][j]] = [i+1,j]
+        endfor
+    endfor
     let g:_riv_p.td_keywords = '\v%('.join(s:normlist(split(g:riv_todo_keywords,'[,;]')),'|').')'
 
     let g:_riv_t.time_fmt  = "%Y-%m-%d"
 
-    let g:_riv_p.todo_box = '\v('. g:_riv_p.list_all .')(\[.\] )'
+    let g:_riv_p.todo_box = '\v('. g:_riv_p.list_all .')(\[.\]\s+)'
     let g:_riv_p.todo_key = '\v('. g:_riv_p.list_all .')(' 
-                            \ . g:_riv_p.td_keywords.' )'
+                            \ . g:_riv_p.td_keywords.'\s+)'
     " sub1 list sub2 todo box sub3 todo key 
-    let g:_riv_p.todo_all = '\v('. g:_riv_p.list_all .')%((\[.\] )'
-                         \ .'|('. g:_riv_p.td_keywords.' ))'
+    let g:_riv_p.todo_all = '\v('. g:_riv_p.list_all .')%((\[.\]\s+)'
+                         \ .'|('. g:_riv_p.td_keywords.'\s+))'
     " sub4 timestamp
     let g:_riv_p.timestamp = '(\d{4}-\d{2}-\d{2}%( |$))'
     let g:_riv_p.todo_tm_bgn  = g:_riv_p.todo_all . g:_riv_p.timestamp
@@ -554,8 +575,11 @@ if !exists("g:_riv_c")
     "        mailto:xxx@xxx.xxx
     "       submatch with uri body.
     "standlone link patterns: www.xxx-x.xxx/?xxx
-    let g:_riv_p.link_uri = '\v%(%(file|https=|ftp|gopher)://|%(mailto|news):)([^[:space:]''\"<>]+[[:alnum:]/])'
-            \.'|www[[:alnum:]_-]*\.[[:alnum:]_-]+\.[^[:space:]''\"<>]+[[:alnum:]/]'
+    "
+    let g:_riv_p.link_mail = '\v<[[:alnum:]_-]+%(\.[[:alnum:]_-])*\@[[:alnum:]]%([[:alnum:]-]*[[:alnum:]]\.)+[[:alnum:]]%([[:alnum:]-]*[[:alnum:]])=>'
+    let g:_riv_p.link_uri = '\v<%(%(file|https=|ftp|gopher)://|%(mailto|news):)([^[:space:]''\"<>]+[[:alnum:]/])'
+        \.'|<www[[:alnum:]_-]*\.[[:alnum:]_-]+\.[^[:space:]''\"<>]+[[:alnum:]/]'
+        \.'|'.g:_riv_p.link_mail
 
 
     " File:
@@ -591,13 +615,13 @@ if !exists("g:_riv_c")
     " `xxx xx`_
     let g:_riv_p.link_ref_phase  = '\v`[^`\\]*%(\\.[^`\\]*)*`_\ze'.s:ref_end
     "  xxx__
-    let g:_riv_p.link_ref_anoymous = '\v<'.s:ref_name.'__\ze'.s:ref_end
+    let g:_riv_p.link_ref_anonymous = '\v%(<'.s:ref_name.'|`[^`\\]*%(\\.[^`\\]*)*`)__\ze'.s:ref_end
     " [#]_ [*]_  [#xxx]_  [3]_    and citation [xxxx]_
     let g:_riv_p.link_ref_footnote = '\v\[%(\d+|#|\*|#='.s:ref_name.')\]_\ze'.s:ref_end
 
     let g:_riv_p.link_reference = g:_riv_p.link_ref_normal
                 \ . '|' . g:_riv_p.link_ref_phase
-                \ . '|' . g:_riv_p.link_ref_anoymous
+                \ . '|' . g:_riv_p.link_ref_anonymous
                 \ . '|' . g:_riv_p.link_ref_footnote
 
     " Target:
@@ -606,7 +630,7 @@ if !exists("g:_riv_c")
     " _`xxx xxx`
     let g:_riv_p.link_tar_inline = '\v%(\s|\_^)\zs_`[^:\\]+\ze:\_s`'
     " .. _xxx:
-    let g:_riv_p.link_tar_normal = 'v^\.\.\s\zs_[^:\\]+\ze:\_s'
+    let g:_riv_p.link_tar_normal = '\v^\.\.\s\zs_[^:\\]+\ze:\_s'
     " .. __:   or   __
     let g:_riv_p.link_tar_anonymous = '\v^\.\.\s__:\_s\zs|^__\_s\zs'
     " `xxx  <xxx>`
@@ -627,7 +651,8 @@ if !exists("g:_riv_c")
     let g:_riv_p.all_link = '\v('. g:_riv_p.link_target 
                 \ . ')|(' . g:_riv_p.link_reference
                 \ . ')|(' . g:_riv_p.link_uri 
-                \ . ')|(' . g:_riv_p.link_file . ')'
+                \ . ')|(' . g:_riv_p.link_file
+                \. ')'
 
     " Miscs:
     " indent.vim
@@ -642,8 +667,8 @@ if !exists("g:_riv_c")
     let g:_riv_t.highlight_code = s:normlist(split(g:riv_highlight_code,','))
     let g:_riv_t.month_names = split(g:riv_month_names,',')
 
-    lockvar 2 g:_riv_c
-    lockvar 2 g:_riv_p
+    " lockvar 2 g:_riv_c
+    " lockvar 2 g:_riv_p
 endif
 
 endfun "}}}

@@ -26,26 +26,23 @@ function! GetRSTIndent(row) "{{{
 
     let p_line = getline(a:row - 1)
 
-    " Field List
-    " 1:ind
-    let p_ind =  matchend(p_line, g:_riv_p.field_list)
-    if p_ind != -1
-        return p_ind
-    endif
-
     let pnb_line = getline(pnb_num)
     let ind = indent(pnb_num)
     
     " list
-    " 1/2:fix ind
+    " 1~2:fix ind
     " 3: ind
     " 4: prev ind
     let l_ind = matchend(pnb_line, g:_riv_p.list_all)
     if l_ind != -1 &&  a:row <= pnb_num+2 
+        " the start of list content
         return (ind + l_ind - matchend(pnb_line, '^\s*'))
     elseif l_ind != -1 &&  a:row <= pnb_num+3 
+        " the start of list left edge. 
+        " and should be the start of prev list content (if exists)
         return ind
     elseif l_ind != -1 &&  a:row >= pnb_num+4 
+        " the start of prev list left edge.
         call cursor(pnb_num,1)
         let p_lnum = searchpos(g:_riv_p.list_all.'|^\S', 'bW')[0]
         let p_ind  = matchend(getline(p_lnum),g:_riv_p.list_all)
@@ -55,7 +52,7 @@ function! GetRSTIndent(row) "{{{
     endif
     
     " literal-block
-    " 1/2+:ind  
+    " 1~2+:ind  
     " 2:4
     let l_ind = matchend(pnb_line, '[^:]::\s*$')
     if l_ind != -1 &&  a:row == pnb_num+2
@@ -70,14 +67,22 @@ function! GetRSTIndent(row) "{{{
     endif
     
     " one empty without match
-    " 1: ind
-    " 2+ : check prev exp_mark
-    if a:row > pnb_num+1
+    " 1~2: ind
+    " 3 : check prev exp_mark or list
+    " 4+ : 0
+    if a:row > pnb_num+3
+        return 0
+    elseif  a:row > pnb_num+2
         call cursor(pnb_num,1)
-        let p_line = getline(searchpos('^\s*\.\.\s\|^\S', 'bW')[0])
+        let p_row = searchpos(g:_riv_p.list_all.'|^\s*\.\.\s\|^\S', 'bW')[0]
+        let p_line = getline(p_row)
         let p_ind  = matchend(p_line,'^\s*\.\.\s')
         if p_ind != -1
             return p_ind
+        endif
+        let p_ind  = matchend(p_line, g:_riv_p.list_all)
+        if p_ind != -1
+            return indent(p_row)
         endif
     endif
 
