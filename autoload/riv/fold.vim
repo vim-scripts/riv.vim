@@ -2,8 +2,7 @@
 "    Name: fold.vim
 "    File: fold.vim
 "  Author: Rykka G.Forest
-"  Update: 2012-06-29
-" Version: 0.5
+"  Update: 2012-07-07
 "=============================================
 let s:cpo_save = &cpo
 set cpo-=C
@@ -18,7 +17,7 @@ fun! s:init_stat() "{{{
         let b:foldlevel = b:foldlevel >= 2 ? 2 : 0 
     endif
 
-    if !exists("b:fdl_list") || len(b:fdl_list) != line('$')+1 || g:_riv_debug
+    if !exists("b:fdl_list") || &modified || g:_riv_debug
         call s:parse_from_start()
     endif
 endfun "}}}
@@ -201,8 +200,6 @@ fun! s:set_obj_dict() "{{{
                 let b:riv_obj[m.bgn+2] = m
             endif
             " Stop Sect Part "}}}
-            " let lst_sect = {'bgn':'sect' . m.txt, 'parent':'list_root', 'child':[]}
-            " call s:add_child(b:riv_obj['list_root'], lst_sect)
         elseif m.type== 'list'
             " The List Part "{{{
             let lst_lv = m.level
@@ -223,7 +220,7 @@ fun! s:set_obj_dict() "{{{
                 call s:add_brother(brother, m)
             endif
 
-            let m.td_stat = riv#todo#get_td_stat(b:lines[m.bgn])
+            let m.td_stat = riv#todo#stat(b:lines[m.bgn])
 
             let p_l_obj = m
             let p_lst_lv = lst_lv
@@ -233,23 +230,8 @@ fun! s:set_obj_dict() "{{{
         elseif m.type == 'trans'
             let lst_lv = 0
             let b:riv_obj[m.bgn] = m
-        elseif m.type== 'exp'
+        else
             let f = 1
-            let b:riv_obj[m.bgn] = m
-        elseif m.type == 'block'
-            let f = 1
-            let b:riv_obj[m.bgn] = m
-        elseif m.type == 'table'
-            let f = 1
-            let m.col = len(split(b:lines[m.bgn], '+',1)) - 2
-            let m.row = len(filter(b:lines[m.bgn:m.end], 
-                        \'v:val=~''^\s*+''')) - 1
-            let b:riv_obj[m.bgn] = m
-        elseif m.type == 'simple_table'
-            let f = 1
-            let m.col = len(split(b:lines[m.bgn], '\s\+',1))
-            let m.row = m.end - m.bgn +1 - len(filter(b:lines[m.bgn:m.end], 
-                        \'v:val=~g:_riv_p.simple_table'))
             let b:riv_obj[m.bgn] = m
         endif
         
@@ -361,10 +343,11 @@ fun! s:check(row) "{{{
         call s:e_checker(row)
         call s:b_checker(row)
         call s:st_checker(row)
+        call s:lb_checker(row)
 
         if !has_key(b:state, 'e_chk') && !has_key(b:state, 'b_chk')  
             \ && line=~s:p.literal_block && b:lines[a:row+1]=~ '^\s*$'
-            if line=~s:p.exp_m
+            if line=~s:p.exp_mark
                 let b:state.e_chk= {'type': 'exp', 'bgn':a:row,}
                 return 1
             else
@@ -379,7 +362,7 @@ fun! s:check(row) "{{{
     if line=~'^\s*[[:alnum:]]\+\_s'
         return
     elseif b:foldlevel > 1 && !has_key(b:state, 'e_chk')
-                \ && line=~s:p.list_all
+                \ && line=~s:p.all_list
 
         let idt = riv#fold#indent(line)
         let l_item = {'type': 'list', 'bgn': a:row, 
@@ -404,7 +387,7 @@ fun! s:check(row) "{{{
         return 1
     elseif line=~'^\s*\w'
         return
-    elseif b:foldlevel > 2 && (line=~s:p.exp_m )
+    elseif b:foldlevel > 2 && (line=~s:p.exp_mark )
         if  (line=~'^\.\.\s*$' && a:row!=line('$') 
                             \ && b:lines[a:row+1]=~'^\s*$')
             call add(b:state.matcher,{'type': 'exp', 'mark': 'ignored', 
@@ -415,11 +398,16 @@ fun! s:check(row) "{{{
         return 1
     elseif b:foldlevel > 2 && !has_key(b:state, 'st_chk') && line =~ s:p.simple_table 
                 \ && row != line('$') && b:lines[row+1] !~ '^\s*$'
-        let b:state.st_chk =  {'type': 'simple_table' , 'bgn': a:row}
+        let b:state.st_chk =  {'type': 'simple_table' , 'bgn': a:row, 'row': 0,
+                    \ 'col': len(split(line)) }
+        return 1
+    elseif b:foldlevel > 2 && !has_key(b:state, 'lb_chk') && line=~s:p.line_block 
+        let b:state.lb_chk= {'type': 'line_block' , 'bgn': a:row}
         return 1
     elseif b:foldlevel > 2 && !has_key(b:state, 't_chk') 
                 \ && line=~s:p.table
-        let b:state.t_chk= {'type': 'table' , 'bgn': a:row}
+        let b:state.t_chk= {'type': 'table' , 'bgn': a:row, 'row': 0,
+                    \ 'col': len(split(line, '+',1)) - 2 }
         return 1
     elseif b:foldlevel > 2 && line=~'^'
         call add(b:state.matcher,{'type':'trans', 'bgn':a:row,'end':a:row})
@@ -514,9 +502,23 @@ fun! s:b_checker(row) "{{{
         call remove(b:state, 'b_chk')
     endif
 endfun "}}}
+fun! s:lb_checker(row) "{{{
+    if !has_key(b:state, 'lb_chk') | return | endif
+    if b:lines[a:row] !~ s:p.line_block && b:lines[a:row-1] =~ '^\s*$'
+        let b:state.lb_chk.end = a:row-1
+        call add(b:state.matcher, b:state.lb_chk)
+        call remove(b:state, 'lb_chk')
+    elseif a:row==line('$')
+        let b:state.t_chk.end = a:row
+        call add(b:state.matcher, b:state.lb_chk)
+        call remove(b:state, 'lb_chk')
+    endif
+endfun "}}}
 fun! s:t_checker(row) "{{{
     if !has_key(b:state, 't_chk') | return | endif
-    if (b:lines[a:row] !~ s:p.table )
+    if b:lines[a:row] =~ g:_riv_p.table_fence
+        let b:state.t_chk.row += 1
+    elseif (b:lines[a:row] !~ s:p.table_line )
         let b:state.t_chk.end = a:row-1
         call add(b:state.matcher, b:state.t_chk)
         call remove(b:state, 't_chk')
@@ -527,12 +529,17 @@ fun! s:t_checker(row) "{{{
     endif
 endfun "}}}
 fun! s:st_checker(row) "{{{
-    if !has_key(b:state, 'st_chk') | return | endif
+    if !has_key(b:state, 'st_chk') 
+        return 
+    endif
     if  b:lines[a:row] =~ s:p.simple_table
-        \ && b:lines[a:row+1] =~ '^\s*$'
-        let b:state.st_chk.end = a:row
-        call add(b:state.matcher, b:state.st_chk)
-        call remove(b:state, 'st_chk')
+        if b:lines[a:row+1] =~ '^\s*$'
+            let b:state.st_chk.end = a:row
+            call add(b:state.matcher, b:state.st_chk)
+            call remove(b:state, 'st_chk')
+        endif
+    elseif b:lines[a:row] !~ s:p.simple_table_span
+        let b:state.st_chk.row += 1
     endif
 endfun "}}}
 
@@ -667,6 +674,8 @@ fun! riv#fold#text() "{{{
         elseif b:riv_obj[lnum].type == 'block'
             let cate = " ::"
             let line = getline(lnum+1)
+        elseif b:riv_obj[lnum].type == 'line_block'
+            let cate = " | "
         elseif b:riv_obj[lnum].type == 'trans'
             let cate = " --"
             let line = strtrans(line)
@@ -725,7 +734,7 @@ fun! s:parse_list() "{{{
     let l_match = []
     let end = line('$')
     let [row,col] = searchpos('^\S','bc',0,100)
-    while getline(row) =~ g:_riv_p.list_b_e && row != 0
+    while getline(row) =~ g:_riv_p.b_e_list && row != 0
         let [row,col] = searchpos('^\S','b',0,100)
     endwhile
     if row 
@@ -760,7 +769,7 @@ fun! s:parse_list() "{{{
         endif
 
         " add
-        if getline(row) =~ g:_riv_p.list_b_e
+        if getline(row) =~ g:_riv_p.b_e_list
             let l_obj = {'bgn':row,'indent':idt,'parent':0,'child':[]}
             call add(l_chk, l_obj)
         else

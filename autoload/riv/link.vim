@@ -3,8 +3,7 @@
 "    File: link.vim
 " Summary: link ref and targets.
 "  Author: Rykka G.Forest
-"  Update: 2012-06-27
-" Version: 0.5
+"  Update: 2012-07-07
 "=============================================
 let s:cpo_save = &cpo
 set cpo-=C
@@ -23,18 +22,20 @@ fun! riv#link#get_last_foot() "{{{
 endfun "}}}
 fun! riv#link#finder(dir) "{{{
     let flag = a:dir=="b" ? 'Wnb' : 'Wn'
-    let [srow,scol] = searchpos(g:_riv_p.all_link,flag,0,100)
+    let [srow,scol] = searchpos(g:_riv_p.link_all,flag,0,100)
     if srow[0] != 0
         call setpos("'`",getpos('.'))
         call cursor(srow, scol)
     endif
 endfun "}}}
-
+fun! s:escape(str) "{{{
+    return escape(a:str, '.^$*[]\@+=~')
+endfun "}}}
 fun! s:normal_ptn(text) "{{{
     let text = substitute(a:text ,'\v(^__=|_=_$)','','g')
     let text = substitute(text ,'\v(^`|`$)','','g')
     let text = substitute(text ,'\v(^\[|\]$)','','g')
-    let text = substitute(escape(text,'.^$*[]\'),'\s\+','\\s+','g')
+    let text = substitute(s:escape(text),'\s\+','\\s+','g')
     return text
 endfun "}}}
 
@@ -54,6 +55,8 @@ fun! s:find_tar(text) "{{{
 
     let norm_ptn = s:normal_ptn(a:text)
     let [c_row,c_col] = getpos('.')[1:2]
+
+    " The section title are implicit targets.
     let row = s:find_sect('\v\c^'.norm_ptn.'$')
     if row > 0
         return [row, c_col]
@@ -77,7 +80,6 @@ fun! s:find_ref(text) "{{{
     return [a_row, a_col]
 endfun "}}}
 fun! s:find_sect(ptn) "{{{
-" Note:the Section Title is also targets.
     if exists("b:state.sectmatcher")
         for sect in b:state.sectmatcher
             if getline(sect.bgn) =~ a:ptn
@@ -89,17 +91,16 @@ endfun "}}}
 
 fun! riv#link#open() "{{{
 
-    let idx = s:get_phase_idx()
-    if idx == -1
-        let idx = s:get_cWORD_idx()
-    endif
+    let [row,col] = getpos('.')[1:2]
+    let line = getline(row)
+
+    let idx = s:get_P_or_W_idx(line,col)
+
     if idx == -1
         return 
     endif
 
-    let [row,col] = getpos('.')[1:2]
-    let line = getline(row)
-    let mo = s:matchobject(line, g:_riv_p.all_link, idx)
+    let mo = riv#ptn#match_object(line, g:_riv_p.link_all, idx)
 
     if empty(mo) || mo.start+1 > col || mo.end < col
         return
@@ -130,8 +131,7 @@ fun! riv#link#open() "{{{
         if !empty(mo.groups[4])             " it's file://xxx
             if mo.str =~ '^file'
                 update
-                exe "edit ".expand(mo.groups[4])
-                let b:riv_p_id = s:id()
+                call riv#file#edit(expand(mo.groups[4]))
             else
                 " vim will expand the # and % , so escape it.
                 sil! exe "!".g:riv_web_browser." ". escape(mo.groups[4],'#%')." &"
@@ -147,10 +147,10 @@ fun! riv#link#open() "{{{
         if g:riv_localfile_linktype == 2
             let mo.str = matchstr(mo.str, '^\[\zs.*\ze\]$')
         endif
-        if s:is_relative(mo.str)
+        if riv#path#is_relative(mo.str)
             let dir = expand('%:p:h').'/'
             let file = dir . mo.str
-            if s:is_directory(file)
+            if riv#path#is_directory(file)
                 let file = file . 'index.rst'
             elseif g:riv_localfile_linktype == 2 && fnamemodify(file, ':e') == ''
                 let file = file . '.rst'
@@ -159,53 +159,61 @@ fun! riv#link#open() "{{{
             let file = expand(mo.str)
         endif
         update
-        exe "edit ".file
-        let b:riv_p_id = s:id()
+        call riv#file#edit(file)
         return 4
     endif
 endfun "}}}
 
-fun! s:is_relative(name) "{{{
-    return a:name !~ '^\~\|^/\|^[a-zA-Z]:'
-endfun "}}}
-fun! s:is_directory(name) "{{{
-    return a:name =~ '/$' 
+fun! s:get_P_or_W_idx(line, col) "{{{
+    let idx = riv#ptn#get_phase_idx(a:line, a:col)
+    if idx == -1
+        let idx = riv#ptn#get_WORD_idx(a:line, a:col)
+    endif
+    return idx
 endfun "}}}
 
-fun! s:get_cWORD_idx() "{{{
-    " if cursor is in a WORD ,return it's idx , else return -1
-    let line = getline('.')
-    let ptn = printf('\%%%dc.', col('.'))
-    if matchstr(line, ptn)=~'\S'
-        return match(line, '\S*'.ptn)
-    else
-        return -1
-    endif
-endfun "}}}
-fun! s:get_phase_idx() "{{{
-    " if cursor is in a phase ,return it's idx , else return -1
-    let line = getline('.')
-    let col = col('.')
-    let ptn = printf('`[^`]*\%%%dc[^`]*`__\?\|\%%%dc`[^`]*`__\?', col, col)
-    return match(line, ptn)
-endfun "}}}
 " highlight
+let [s:hl_row, s:hl_bgn,s:hl_end] = [0, 0 , 0]
 fun! riv#link#hi_hover() "{{{
     
-    let idx = s:get_phase_idx()
-    if idx == -1
-        let idx = s:get_cWORD_idx()
+    let [row,col] = getpos('.')[1:2]
+
+    " if col have not move out prev hl region , skip
+    if !&modified &&  row == s:hl_row && col >= s:hl_bgn && col <= s:hl_end
+        return
     endif
+    let [s:hl_row, s:hl_bgn,s:hl_end] = [row, 0 , 0]
+
+    let line = getline(row)
+    let idx = s:get_P_or_W_idx(line,col)
     
     if idx != -1
-        let [l,c] = getpos('.')[1:2]
-        let line = getline(l)
-        let bgn = match(line, g:_riv_p.all_link, idx) + 1
-        if bgn && bgn <= c
-            let end = matchend(line, g:_riv_p.all_link, idx) +1
-            if c <= end
-                execute '2match' "DiffText".' /\%'.(l)
-                            \.'l\%>'.(bgn-1) .'c\%<'.(end).'c/'
+        let obj = riv#ptn#match_object(line, g:_riv_p.link_all , idx)
+        if !empty(obj) && obj.start < col
+            let bgn = obj.start + 1
+            let end = obj.end
+            if col <= end+1
+                let [s:hl_row, s:hl_bgn,s:hl_end] = [row, bgn, end]
+                if !empty(obj.groups[5]) 
+                    let [file, is_dir] = riv#file#from_str(obj.str)
+                    
+                    " if link invalid
+                    if (is_dir && !isdirectory(file) ) 
+                        \ || (!is_dir && !filereadable(file) )
+                        execute '2match' "DiffChange".' /\%'.(row)
+                                    \.'l\%>'.(bgn-1) .'c\%<'.(end+1).'c/'
+                        return
+                    endif
+                endif
+                execute '2match' "DiffText".' /\%'.(row)
+                            \.'l\%>'.(bgn-1) .'c\%<'.(end+1).'c/'
+                return
+            endif
+        else
+            let [is_in,bgn,end,obj] = riv#todo#col_item(line,col)
+            if is_in>=2
+                execute '2match' "DiffAdd".' /\%'.(row)
+                            \.'l\%>'.(bgn-1) .'c\%<'.(end+1).'c/'
                 return
             endif
         endif
@@ -214,25 +222,5 @@ fun! riv#link#hi_hover() "{{{
     2match none
 endfun "}}}
 
-fun! s:matchobject(str, ptn,...) "{{{
-    if a:0
-        let start = a:1
-    else
-        let start = 0
-    endif
-    let s = {}
-    let idx = match(a:str,a:ptn,start)
-    if idx == -1
-        return s
-    endif
-    let s.start  = idx
-    let s.groups = matchlist(a:str,a:ptn,start)
-    let s.str    = s.groups[0]
-    let s.end    = s.start + len(s.str)
-    return s
-endfun "}}}
-fun! s:id() "{{{
-    return exists("b:riv_p_id") ? b:riv_p_id : g:riv_p_id
-endfun "}}}
 let &cpo = s:cpo_save
 unlet s:cpo_save
