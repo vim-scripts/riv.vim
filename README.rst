@@ -2,61 +2,62 @@ Intro
 =====
 
 :Author: Rykka G.Forest
-:Date:   2012-07-07 12:31:41
-:Version: 0.68 
+:Date:   2012-07-08 22:24:32
+:Version: 0.69 
 :Github: https://github.com/Rykka/riv.vim
 
-**Riv** is a vim plugin for managing and writing reStructuredText_ documents.
-Short for 'reStructuredText in Vim'. 
+**Riv** is for writing and managing documents in vim.
 
-It is for people either want to manage documents in a wiki way,
-or writing documents in a neat way.
+Short for 'reStructuredText in Vim'. 
+As it uses reStructuredText_ syntax.
+
+It is for people either want to writing documents in a neat way,
+or manage documents in a wiki way.
 
 .. _reStructuredText: http://docutils.sourceforge.net/rst.html
-
-Screenshot
-----------
-
-**Overview of this Intro**
-
-.. image::  http://i.minus.com/jqyQGm8G9gO9h.png
-
-**The Folding infos**
-
-.. image::  http://i.minus.com/ibeAAXZxjcyoZ5.png
-
-
 
 Features
 --------
  
-These features are for all reStructuredText files.
+These features are contained in all reStructuredText files.
 
- :Sections_: Section level and section number auto detected. 
- :Lists_:    Auto Numbered and auto leveled bullet and enumerated list.
- :Blocks_:   Highlighting and folding blocks.
- :Links_:    Jumping with links.
- :Table_:    Auto formatted table.
- :Folding_:  Fold document by document structures (Section/List/Block).
- :Indent_:   Improved indentation 
- :Insert_:   Improvment of some mapping in insert mode.
- :Syntax_:   Improved syntax file. 
- :Publish_:  some wrapper to convert rst files to html/xml/latex/odt/... 
-            (require python docutils package )
+ :Sections_: Reveal section level and section number.
+ :Lists_:    Creating lists that's auto numbered, auto leveled and auto indented.
+ :Blocks_:   Highlighted and folded blocks.
+ :Links_:    Jumping with links. Highlighted hovering links.
+ :Table_:    Creating table that auto formatted. 
+ :Folding_:  Fold document element and showing extra info.
+ :Indent_:   Smarter indent.
+ :Insert_:   Super ``<Tab>`` and Super ``<Enter>`` ...
+ :Syntax_:   Clearer syntax highlighting.
+ :Publish_:  Convert rst files to html/xml/latex/odt/... (docutils_ required)
+ :Helpers_:  A document/project manager.
 
+             a. `Section Helper`_: Showing section number of current document.
+             b. `Todo Helper`_: Managing todo items of project or document.
+             c. `File Helper`_: Showing rst files of current directory.
+ :File_:     Local file link in rst documents. 
+ :Todos_:    Keep track of todo things. (non-reStructuredText syntax)
 
-These features are for the Riv Project. 
+These features are better working with the project. 
 
- :Project_:  Manage your reStructuredText documents in a wiki way.
- :File_:     Links to local file in rst documents. 
- :Scratch_:  A place for writing diary or hold idea and thoughts.
- :Todos_:    Writing todo lists in reStructuredText documents .
- :Helpers_:  A help window for showing and doing something.
-
-             a. `Todo Helper`_: Managing todo items of project.
+ :Project_:  Hold your rst documents in place.
+ :Scratch_:  A place for writing diary or notes.
 
 * To Install: see `Install`_
-* To Start: see `Instruction`_
+* To Start: see `QuickStart With Riv`_  or ``:RivQuickStart`` for a quickstart in vim.
+* Instucion: see `Instruction`_ 
+
+Screenshot
+----------
+
+**Folding infos**
+
+.. image::  http://i.minus.com/ibeAAXZxjcyoZ5.png
+
+**Section Helper**
+
+.. figure::  http://i.minus.com/jbnz0ZNgxVmYCI.jpg
 
 Install
 -------
@@ -79,9 +80,9 @@ Install
 * Recommend plugins: 
 
   + Syntastic_  for syntax checking of rst files.
-    (require python docutils package )
+    (require python docutils_ package )
 
-    .. _Syntastic: https://github.com/scrooloose/syntastic
+.. _Syntastic: https://github.com/scrooloose/syntastic
 
 Issues
 ------
@@ -99,21 +100,16 @@ Todo
 Prev
 ~~~~
 
-See Changelog in doc/riv_log.rst [riv_log]_
-
-This
-~~~~~
-
-Things todo in this version.
+See Changelog in  riv_log_ ( doc/riv_log.rst )
 
 * 0.68:
     
-    :Patterns:  DONE 2012-07-07 a2334f7b_ Rewrite the pattern and syntax patterns part. 
-    :Todos_:    DONE 2012-07-07 a2334f7b_ Rewrite todo and todo helper.Add Todo Priorities. 
-    :Syntax_:   DONE 2012-07-07 a2334f7b_ Cursor highlight will highlight the todo item 
-    :Syntax_:   DONE 2012-07-07 a2334f7b_ Cursor highlight will check it's valid file
-    :Lists_:    DONE 2012-07-07 0a959662_ Add list types 0 ~ 4 
-    :Todos_:    DONE 2012-07-07 142b6c49_ Add Prior in helpr
+  :Patterns:  DONE 2012-07-07 a2334f7b_ Rewrite the pattern and syntax patterns part. 
+  :Todos_:    DONE 2012-07-07 a2334f7b_ Rewrite todo and todo helper.Add Todo Priorities. 
+  :Syntax_:   DONE 2012-07-07 a2334f7b_ Cursor highlight will highlight the todo item 
+  :Syntax_:   DONE 2012-07-07 a2334f7b_ Cursor highlight will check it's valid file
+  :Lists_:    DONE 2012-07-07 0a959662_ Add list types 0 ~ 4 
+  :Todos_:    DONE 2012-07-07 142b6c49_ Add Prior in helper
 
 
 .. _142b6c49: 
@@ -124,13 +120,36 @@ Things todo in this version.
 .. _a2334f7b:
     https://github.com/Rykka/riv.vim/commit/a2334f7b98e9ce83c06d95e7552a13ac6c2c1cd4
 
+This
+~~~~~
+
+Things todo in this version.
+
+* 0.69:
+
+  :Indent_: DONE 2012-07-07 8b2c4611_ Rewrite the indent for list and insert.
+  :File_:   DONE 2012-07-07 dceab5c1_ Add File helper.
+  :Document: DONE 2012-07-08 69e5a86e_ commit links
+  :File_:   DONE 2012-07-08 a207e1e0_ Add Section helper.
+  :Intro_:  DONE 2012-07-09 add Riv quickstart
+  :Insert_: DONE 2012-07-13 rewrite and add options about ``i_tab``.
+
+.. _a207e1e0: 
+   https://github.com/Rykka/riv.vim/commit/a207e1e0de177f6e6bd06fc2fab0151780074320
+.. _69e5a86e: 
+   https://github.com/Rykka/riv.vim/commit/69e5a86e530c09f1472b1d4c79c05854a061f8f3
+.. _dceab5c1: 
+   https://github.com/Rykka/riv.vim/commit/dceab5c1b0ae484c44763ff1172fc3d93debf2e6
+.. _8b2c4611: 
+   https://github.com/Rykka/riv.vim/commit/8b2c4611acf959a28d4413e0131de70b68c9368d
+
 Next 
 ~~~~~
 
-See doc/riv_todo.rst [riv_todo]_
+See riv_todo_ ( doc/riv_todo.rst )
 
-.. [riv_log] https://github.com/Rykka/riv.vim/blob/master/doc/riv_log.rst
-.. [riv_todo] https://github.com/Rykka/riv.vim/blob/master/doc/riv_todo.rst
+.. _riv_log: https://github.com/Rykka/riv.vim/blob/master/doc/riv_log.rst
+.. _riv_todo: https://github.com/Rykka/riv.vim/blob/master/doc/riv_todo.rst
 
 ----
 
@@ -139,11 +158,13 @@ Instruction
 
 * How to use?
 
-  + If you are not familiar with reStructuredText, see QuickStart_
-
+  + For a quick start, see `QuickStart With Riv`_  ( doc/riv_quickstart.rst )
+    Or use ``:RivQuickStart`` to view and edit it in vim.
   + For writing documents, See detail instruction in `reStructuredText Guide`_
-
   + For managing documents, See detail instruction in `Riv Guide`_
+
+.. _Quickstart With Riv:
+   https://github.com/Rykka/riv.vim/blob/master/doc/riv_quickstart.rst
 
 * About the mapping
 
@@ -161,7 +182,7 @@ Instruction
 
   + ``g:riv_buf_leader`` : leader map for reStructuredText buffers.
   + ``g:riv_buf_ins_leader`` : leader map for reStructuredText buffers's insert mode.
-  + To remap one mapping, use the commands ::
+  + To remap one mapping, use the ``map`` commands ::
         
         map <C-E>wi    :RivIndex<CR> 
 
@@ -170,25 +191,15 @@ Instruction
 reStructuredText Guide
 ----------------------
 
-Following features are in all reStructuredText files.
-
-When editing an reStructuredText document (``*.rst`` ), 
-
-These settings will be automatically on. 
+Following features are for all reStructuredText (``*.rst``) documents.
+And follows reStructedText syntax.
 
 :NOTE: make sure ``filetype plugin indent on`` and ``syntax on`` is in your vimrc
 
 Sections 
 ~~~~~~~~~
 
-Sections are basic document structure.
-
-Section titles are highlighted. 
-
-Section levels and numbers are auto detected.
-Sections are folded by it's section level, 
-and showing it's section number (chapter number) as fold info.
-
+Fold sections by it's level, and showing it's section number.
 
 * Actions:
 
@@ -334,7 +345,7 @@ The bullet and enumerated list are auto level and auto numbered.
       
       The list item of each type is:: 
       
-        ``'*' , '1.' , 'a.' , 'A)' ,'i)'``
+        '*' , '1.' , 'a.' , 'A)' ,'i)'
 
       :NOTE:  You should act this on a new list or list with no sub line.
 
@@ -352,7 +363,7 @@ The bullet and enumerated list are auto level and auto numbered.
 List items
 """"""""""
 
-Intro of each list type.
+Intro of the reStructuredText lists.
 
 * Bullet Lists
 
@@ -397,7 +408,12 @@ __ http://docutils.sourceforge.net/docs/ref/rst/restructuredtext.html#definition
 __ http://docutils.sourceforge.net/docs/ref/rst/restructuredtext.html#field-lists
 
 * Option Lists
+
   A list for command-line options and descriptions
+
+  -a         Output all.
+  -b         Output both (this description is
+             quite long).
 
   It is highlighted , not folded.
 
@@ -408,47 +424,44 @@ __ http://docutils.sourceforge.net/docs/ref/rst/restructuredtext.html#option-lis
 
 :NOTE: **A reStructuredText syntax hint**
     
-       Most reStructuredText items is seperated by blank line. 
-       Include sections, lists, blocks, paragraphs ...
+       * Most reStructuredText items is seperated by blank line. 
+         Include sections, lists, blocks, paragraphs ...
 
-       The reStructuredText is indent sensitive.
+       * Also the reStructuredText is indent sensitive.
 
-       To contain a sublist or second paragraph or blocks in a list , 
+       **So subitem of a list have strict syntax**
+
+       To contain a subitem ( lists or paragraphs or blocks ) in a list , 
         
-       A blank line is needed and the the item should 
-       lines up with the main list content's left edge.::
+       A blank line is needed and the sub item should lines up with 
+       the main list content's left edge.::
 
-        * parent list
+           * list 1
 
-          second paragraph
-
-          + sub list
-
-           - WRONG! this list is not line up with conten's left edge, 
-             so it's in a block quote
+            - WRONG! this list is not line up with conten's left edge, 
+              so it's in a block quote
              
-              - WRONG! this list is in a block quote too.
+               - WRONG! this list is in a block quote too.
 
-          + sub list2
-            - TOO WRONG! 
-              it's not a sub list of prev list , it's just a line in the content. 
+           * list 2
+             - TOO WRONG! A blank line is needed.
+               it's not a sub list of prev list , it's just a line in the content. 
 
-          + sub list 3
-             - STILL WRONG!
-               it's not a sub list , but it's a list in a definition list
+           * list 3
+              - STILL WRONG! not line up and no blank line.
+                it's not a sub list , but it's a list in a definition list
 
-          + sub list 4
+           * list 4
 
-            - RIGHT! this one is sub list of sub list4.
-
-
-       and following enumerated lists, definition lists , field lists and option lists.
+             - RIGHT! this one is sub list of list 4.
 
 
 Blocks
 ~~~~~~
 
 The Block elements of the document.
+
+Highlighted , and most are folded.
 
 * Literal Blocks:
     
@@ -478,8 +491,10 @@ __ http://docutils.sourceforge.net/docs/ref/rst/restructuredtext.html#literal-bl
     | It should have '|' at the begining
     | It can have multiple lines
 
+
   | This is a line block
-  | This is the second line
+
+  | This is the second line (github did not render it correctly as it have div)
 
   It's highlighted and folded. 
 
@@ -505,7 +520,7 @@ __ http://docutils.sourceforge.net/docs/ref/rst/restructuredtext.html#line-block
 
   The attribution: a text block beginning with "--", "---".::
 
-    -- Attribution
+    -- Attribution (Github did not rendering it correctly as no 'attribution' class)
     
   The attribution is highlighted.
 
@@ -518,9 +533,9 @@ __ http://docutils.sourceforge.net/docs/ref/rst/restructuredtext.html#block-quot
 >>> print 'this is a Doctest block'
 this is a Doctest block
     
-  It's highlighted but not folded.
+It's highlighted, not folded.
 
-  See `Doctest Blocks`__ for syntax details.
+See `Doctest Blocks`__ for syntax details.
 
 __ http://docutils.sourceforge.net/docs/ref/rst/restructuredtext.html#doctest-blocks
 
@@ -528,6 +543,10 @@ __ http://docutils.sourceforge.net/docs/ref/rst/restructuredtext.html#doctest-bl
     
     start with '..' and a whitespace.
 
+  :NOTE: Although reStructuredText support start ``..`` with indent.
+         Riv does not support this yet. 
+         
+         put all ``..`` at first column to gain highlighting and folding.
 
   The explicit markup syntax is used for footnotes, citations, hyperlink targets,
   directives, substitution definitions, and comments.
@@ -537,7 +556,7 @@ __ http://docutils.sourceforge.net/docs/ref/rst/restructuredtext.html#doctest-bl
   See `Explicit Markup Blocks`__ for syntax details.
 
   And for the ``code`` directives, syntax highlighting is on. 
-  See `code syntax highlighting`_  for syntax details.
+  See `Code Highlighting`_  for details.
 
 __ http://docutils.sourceforge.net/docs/ref/rst/restructuredtext.html#explicit-markup-blocks
 
@@ -555,9 +574,10 @@ __ http://docutils.sourceforge.net/docs/ref/rst/restructuredtext.html#inline-mar
 Links
 ~~~~~
 
-Links are highlighted in syntax and highlighted with `cursor highlighting`_.
+You can jumping with links.
 
-And you can jumping with links.
+And it's highlighted with `Cursor Highlighting`_.
+
 
 * Actions:
 
@@ -629,7 +649,7 @@ And you can jumping with links.
        There are implicit hyperlink targets and explicit hyperlink targets.
 
        Implicit hyperlink targets are generated by section titles, 
-       footnotes, and citations
+       footnotes, and citations.
 
        Explicit hyperlink targets are defined as follows::
 
@@ -638,6 +658,12 @@ And you can jumping with links.
         _`an inline hyperlink target`
             
        See `Hyperlink targets`_ for syntax details.
+
+       :NOTE: In converted file, Implicit hyperlink are internal file link, 
+              and Explicit hyperlink are external links.
+
+              While in vim, clicking both links will bring you to internal intarget.
+              Cause it's target may not valid in local domain.
 
 .. _Hyperlink References:
    http://docutils.sourceforge.net/docs/ref/rst/restructuredtext.html#hyperlink-references
@@ -662,23 +688,28 @@ For Grid table, it is auto formatted.
 
   + Actions:
 
+    - Format: Use ``<C-E>tf`` or ``:RivFormatTable`` to format table.
+
+      It will be auto formatted after leaving insert mode,
+      or pressing ``<Enter>`` or ``<Tab>`` in insert mode.
+
     Insert Mode Only:
 
-    To create a table , just insert ``| xxx |`` and press ``<Enter>``.
+    To create a table , just insert ``| xxx |`` and escape insert mode.
 
-    It will be autoformatted after Leave Insert Mode 
-    or pressing ``<Enter>`` or ``<Tab>`` ::
+    - In the Table ::
 
-        +--------+-----------------------------------------------------------+
-        | 4x2    | Grid Table                                                |
-        +========+===========================================================+
-        | Lines  | - <Enter> in column to add a new line of column           |
-        |        | - This is the second line of in same row of table.        |
-        +--------+-----------------------------------------------------------+
-        | Rows   | <Enter> in seperator to add a new row                     |
-        +--------+-----------------------------------------------------------+
-        | Cells  | <Tab> and <S-Tab> in table will switch to next/prev cell  |
-        +--------+-----------------------------------------------------------+
+        +--------+--------------------------------------------------------------+
+        | 4x2    | Grid Table                                                   |
+        +========+==============================================================+
+        | Lines  | - <Enter> in column to add a new line of column              |
+        |        | - This is the second line of in same row of table.           |
+        +--------+--------------------------------------------------------------+
+        | Rows   | <Enter> in seperator to add a new row                        |
+        +--------+--------------------------------------------------------------+
+        | Cell   | <C-E>tn or <Tab> or RivTableNextCell, switch to next cell    |
+        |        | <C-E>tp or <S-Tab> or RivTablePrevCell, switch to prev cell  |
+        +--------+--------------------------------------------------------------+
 
 
     +--------+-----------------------------------------------------------+
@@ -727,16 +758,22 @@ __ http://docutils.sourceforge.net/docs/ref/rst/restructuredtext.html#grid-table
   ===========  ========================
 
 
-    See `Simple Tables`__ for syntax details.
+  See `Simple Tables`__ for syntax details.
 
 __ http://docutils.sourceforge.net/docs/ref/rst/restructuredtext.html#simple-tables
 
 Folding 
 ~~~~~~~~
 
-**Folding** is a vim feature to allow you to display a section as one line.
+**Folding** is a vim feature 
+to display a range of lines as single line.
 
-Riv will fold reStructuredText file with sections, lists, and blocks automatically.
+Then you can get a better overview of the strucutre of documents.
+
+And manage the folded structure with actions like: select, copy, paste... as one line.
+
+Riv fold reStructuredText file with sections, lists, and blocks automatically,
+And provide extra infos of them.
 
 * Actions (Normal Mode Only):
 
@@ -745,8 +782,8 @@ Riv will fold reStructuredText file with sections, lists, and blocks automatical
 
     use ``zo`` ``zO`` or ``zv`` will open it either.
 
-    :NOTE: To use mouse to open or close fold anywhere. 
-           ``set fdc=1``
+    :NOTE: To use mouse to control all folding. 
+           use vim option ``foldcolumn`` with ``set fdc=1`` or more
 
   + Close Folding:  use ``zc`` or ``zC`` will close it.
 
@@ -788,7 +825,6 @@ Riv will fold reStructuredText file with sections, lists, and blocks automatical
   
     - when set to ``left``, these info will be shown at left side.
     - default is ``right``
-  
   
   
 * Options:
@@ -835,92 +871,130 @@ Riv will fold reStructuredText file with sections, lists, and blocks automatical
 
   + Use  ':h folding' in vim to get an overview of folding in vim.
 
+
 Syntax
 ~~~~~~
 
-Highlights of document items.
+Improved highlights to indicate document items.
 
-*  _`Code Syntax Highlighting`
-
-   For the ``code`` directives (also ``sourcecode`` and ``code-block``). 
-   syntax highlighting is on ::
- 
-     .. code:: python
-     
-         # python highlighting
-         # github does not support syntax highlighting rendering for rst file yet.
-         x = [0 for i in range(100)]
-
-   + Use ``g:riv_highlight_code`` to set which languages to be highlighted.
-
-     default is ``lua,python,cpp,javascript,vim,sh``
-
-   :NOTE: To enable syntax highlighting in converted file, 
-          python pygments_  package must installed for ``docutils`` 
-          parsing syntax highlighting.
-
-          See http://docutils.sourceforge.net/sandbox/code-block-directive/tools/pygments-enhanced-front-ends/
-
-*  The local files are highlighted by highlight group ``rstFileLink``, 
-*  _`Cursor Highlighting` 
-
-   Some item that could interactive with cursor are highlighted when cursor is on.
-
-   + Links are highlighted by ``hl-DiffText``
-
-     - For local file links , if the target is invalid , it will be highlighted by 
-       ``hl-DiffChange``
-   + For Todo items, it is highlighted by ``hl-DiffAdd``
-
-   Disable it by set ``g:riv_hover_link_hl`` to 0
+*  Link of local files are highlighted by highlight group ``rstFileLink``.
 *  Todo Item are highlighted only in vim, not in converted files.
+
+Code Highlighting
+"""""""""""""""""
+
+For the ``code`` directives (also ``sourcecode`` and ``code-block``). 
+syntax highlighting is on ::
+ 
+  .. code:: python
+     
+      # python highlighting
+      # github does not support syntax highlighting rendering for rst file yet.
+      x = [0 for i in range(100)]
+
+* Use ``g:riv_highlight_code`` to set which languages to be highlighted.
+
+  default is ``lua,python,cpp,javascript,vim,sh``
+
+:NOTE: To enable syntax highlighting in converted file, 
+       python pygments_  package must installed for ``docutils`` 
+       parsing syntax highlighting.
+
+       See http://docutils.sourceforge.net/sandbox/code-block-directive/tools/pygments-enhanced-front-ends/
+
+Cursor Highlighting
+"""""""""""""""""""
+
+Some item that could interactive with cursor are highlighted when cursor is on.
+
+* Links are highlighted by ``hl-DiffText``
+
+  + For local file links , if the target is invalid , it will be highlighted by 
+    ``hl-DiffChange``
+* Todo items are highlighted by ``hl-DiffAdd``
+
+Disable Cursor Highlighting by set ``g:riv_hover_link_hl`` to 0
+
 
 Indent
 ~~~~~~
 
-Improved indent in insert mode.
+Smarter indent in insert mode.
+
+The indenting in reStructuredText is complicated. 
+
+Riv will fixed indent for lines in the context of 
+blocks, list, explicit marks. 
+
+If no fix is needed, use ``shiftwidth``
 
 * Actions:
     
   Insert Mode Only
 
-  + starting newline (``<Enter>`` or ``o`` in Normal mode):
-    will start newline with correct indentation 
-  + ``<BS>`` (BackSpace key).
-    will goto correct indentation if no preceding non-whitespace character
-    and after the indentation's ``&shiftwidth`` position , otherwise ``<BS>``
+  + Newline (``<Enter>`` or ``o`` in Normal mode):
+    will start newline with fixed indentation 
+  + ``<BS>`` (BackSpace key) and ``<S-Tab>`` .
+    will use fixed indentation if no preceding non-whitespace character, 
+    otherwise ``<BS>``
+  + ``<Tab>`` (Tab key).
+    will use fixed indentation if no preceding non-whitespace character, 
+    otherwise ``<Tab>``
   
 
 Insert
 ~~~~~~
 
-Improvment for some mapping in insert mode. Detail commands are in each section.
+Super ``<Tab>`` and Super ``<Enter>`` in insert mode.
 
-Most shortcuts can be used in insert mode. like ``<C-E>ee`` ``<C-E>s1`` ...
-
-* Enter: Insert lists_ with ``<C-Enter>`` , ``<S-Enter>`` and ``<C-S-Enter>``.
-
-  When in a table_, ``<Enter>`` to create a new line
-
-  When not in a table, will start new line with correct indentation
-
-* Tab:  When in a table , ``<Tab>`` to next cell , ``<S-Tab>`` to previous one.
-
-  When not in a table , will act as ``<C-N>`` or ``<C-P>`` if insert-popup-menu 
-  is visible.
-
-  When in a list, and cursor is before the list symbol, will shift the list. 
+* Enter and KEnter (Keypad Enter): 
   
-  Otherwise output a ``<Tab>`` or ``<S-Tab>``
+  + When in a table_, ``<Enter>`` to create a new line
+  + When not in a table, will start new line with correct indentation
 
-* BackSpace: for indent_, will goto correct indentation if no preceding non-whitespace character and after the indentation's ``&shiftwidth`` position ,
-  otherwise ``<BS>``
+* Tab and Shift-Tab:  
+  
+  * If insert-popup-menu is visible, will act as ``<C-N>`` or ``<C-P>``
+
+    disable it by setting ``g:riv_i_tab_pum_next`` to 0.
+  * When in a table , ``<Tab>`` to next cell , ``<S-Tab>`` to previous one.
+  * When not in a table, 
+
+    + If it's a list, and cursor is before the list item, will shift the list. 
+    + if have fixed indent, will indent with fixed indent. see indent_.
+    + Otherwise:
+      
+      - if ``g:riv_i_tab_user_cmd`` is not empty , executing it. 
+
+        It's for the user who want different behavior with ``<Tab>`` ::
+
+          " For snipmate user. 
+          let g:riv_i_tab_pum_next = 0
+          " quote cmd with '"', special key must contain '\'
+          let g:riv_i_tab_user_cmd = "\<c-g>u\<c-r>=snipMate#TriggerSnippet()\<cr>"
+
+      - else act as ``<Tab>`` and ``<BS>``.
+    
+  :NOTE:  ``<S-Tab>`` is acting as ``<BS>`` when not in list or table .
+  
+
+* BackSpace: indent with fixed indent. see indent_.
+* Most commands can be used in insert mode. like ``<C-E>ee`` ``<C-E>s1`` ...
+
+:NOTE: to disaple mapping of ``<Tab>`` etc. in insert mode.
+
+       set it in ``g:riv_ignored_imaps`` , each item is split with ``,``. ::
+        
+        " no <Tab> and <S-Tab>
+        let g:riv_ignored_imaps = "<Tab>,<S-Tab>"
+
+       You can view default mappings with ``g:riv_default.buf_imaps``
 
 
 Publish
 ~~~~~~~
 
-Some wrapper to convert rst files to html/xml/latex/odt/... 
+Some command wrapper to convert rst files to html/xml/latex/odt/... 
 (require python docutils_  package )
 
 * Actions:
@@ -973,8 +1047,12 @@ Some wrapper to convert rst files to html/xml/latex/odt/...
     - Also no local file link will be converted.
 
 :NOTE: When converting, It will first try ``rst2xxxx2.py`` , then try ``rst2xxxx.py``
-       You should install the package of python 2 version .
-       Otherwise errors will occour.
+
+       You'd better install the package of python 2 version. 
+
+       And make sure it's in your ``$PATH``
+
+       Otherwise errors may occour.
 
 .. _docutils: http://docutils.sourceforge.net/
 .. _pygments: http://pygments.org/
@@ -982,9 +1060,10 @@ Some wrapper to convert rst files to html/xml/latex/odt/...
 Riv Guide
 ---------
 
-Following features are in documents within project.
+Following features are provided by **Riv**.
 
-Some can be used in a document without a project. 
+* Project_, Scratch_, Helpers_ are extra function for managing rst documents.
+* File_, Todos_ are extra syntax to provide more function in rst document.
 
 Project
 ~~~~~~~
@@ -1002,19 +1081,21 @@ There are some convenience with projects.
 * Publish_ : You can convert whole project to html, and view them as wiki.
 * Todos_ : You can manage all the todo items in a project
 * Scratch_ : Writing diary in a project
+
 * The default project path is ``'~/Documents/Riv'``,
   you can change it by defining project to ``g:riv_projects`` in your vimrc.::
 
     let project1 = { 'path': '~/Dropbox/rst',}
     let g:riv_projects = [project1]
 
+* Use ``:RivIndex`` ``<C-E>ww`` to open the first project index.
+
+
 * You can have multiple projects also::
 
     " You could add multiple projects as well 
     let project2 = { 'path': '~/Dropbox/rst2',}
     let g:riv_projects = [project1, project2]
-
-* Use ``:RivIndex`` ``<C-E>ww`` to open the first project index.
 * Use ``:RivAsk`` ``<C-E>wa`` to choose one project to open.
 
 File
@@ -1086,7 +1167,7 @@ The ``bare extension style`` and ``square bracket style``
 Scratch
 ~~~~~~~
   
-Scratch is a place for writing diary or hold idea and thoughts.
+Scratch is a place for writing diary or notes.
 
 * ``:RivScratchCreate`` ``<C-E>cc``
   Create or jump to the scratch of today.
@@ -1117,6 +1198,8 @@ Todos
 Todo items to keep track of todo things.
 
 It is Todo-box or Todo-keywords in a bullet/enumerated/field list.
+
+It is not defined by reStructuredText syntax.
 
 * Todo Box:
 
@@ -1174,9 +1257,10 @@ It is Todo-box or Todo-keywords in a bullet/enumerated/field list.
 
   The Priorites of todo item
 
-  + [ ] [#A] priorty A
-  + [ ] [#C] priorty B
-  + Double Click or ``<Enter>`` or ``:RivTodoPrior`` on priorty to change priority. 
+  + [ ] [#A] a todo item of priorty A
+  + [ ] [#C] a todo item of priorty C
+  + Double Click or ``<Enter>`` or ``:RivTodoPrior`` on priorty item 
+    to change priority. 
   + You can define the priorty chars by ``g:riv_todo_priorities``
     Only alphabet or digits are supported.
 
@@ -1204,7 +1288,7 @@ It is Todo-box or Todo-keywords in a bullet/enumerated/field list.
  
   Delete Item 
 
-  + Use ``:RivTodoDel`` ``<C-E>ex`` will delete the todo item
+  + Use ``:RivTodoDel`` ``<C-E>ex`` to delete the whole todo item
 
   Helper
 
@@ -1226,27 +1310,56 @@ It is Todo-box or Todo-keywords in a bullet/enumerated/field list.
 Helpers
 ~~~~~~~
 
-A window to show something of the project.
+A window to help manage the project.
 
+* Action:
 
-* _`Todo Helper` : A helper to manage todo items of current project.
-  When current file is not in a project, will show current file's todo items.
-
-  See Todos_ for details.
-
-  + ``:RivTodoHelper`` or ``<C-E>ht``
-    Open to view all todo-items.
-    Default is in search mode.
-
-    - ``/`` to search todo item matching inputing, ``<Enter>`` or ``<Esc>`` to quit
-      search mode.
+  + ``/`` to enter search mode.
+    search item matching inputing, 
+    ``<Enter>`` or ``<Esc>`` to quit search mode.
       
-      Set ``g:riv_fuzzy_help`` to 1 to enable fuzzy searching in helper.
+    Set ``g:riv_fuzzy_help`` to 1 to enable fuzzy searching in helper.
 
-    - ``<Tab>`` to switch content, 
-      there are 'All/Todo/Done' contents for Todo Helper.
-    - ``<Enter>`` or Double Click to jump to the todo item.
-    - ``<Esc>`` or ``q`` to quit the window
+  + ``<Tab>`` to switch content, 
+  + ``<Enter>`` or Double Click to jump to the item.
+  + ``<Esc>`` or ``q`` to quit the window
+
+Todo Helper
+"""""""""""
+
+A helper to manage todo items of current project.
+When current document is not in a project, will show current file's todo items.
+
++ ``:RivHelpTodo`` or ``<C-E>ht``
+  Open Todo Helper.
+  Default is in search mode.
+
+File Helper
+"""""""""""
+
+A helper to show rst files of current directory.
+
+also indicating following files if exists::
+
+    'ROOT': 'RT' Root of project
+    'INDX': 'IN' Index of current directory
+    'CURR': 'CR' Current file
+    'PREV': 'PR' Previous file
+
++ ``:RivHelpFile`` or ``<C-E>hf``
+  Open File Helper.
+  Default is in normal mode.
+
+
+
+
+Section Helper
+""""""""""""""
+A helper showing current document section numbers
+
++ ``:RivHelpSection`` or ``<C-E>hs``
+  Open Section Helper.
+  Default is in normal mode.
 
 Miscs
 ~~~~~

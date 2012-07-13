@@ -111,7 +111,8 @@ fun! riv#link#open() "{{{
         let [sr,sc] = s:find_ref(mo.str)
         if sr != 0
             call setpos("'`",getpos('.'))
-            call setpos('.',[0,sr,sc,0])
+            call cursor(sr,sc)
+            normal! zvz.
             return 1
         endif
     elseif !empty(mo.groups[2])
@@ -121,7 +122,8 @@ fun! riv#link#open() "{{{
             let [sr,sc] = s:find_tar(mo.str)
             if sr != 0
                 call setpos("'`",getpos('.'))
-                call setpos('.',[0,sr,sc,0])
+                call cursor(sr,sc)
+                normal! zvz.
             endif
         else
             sil! exe "!".g:riv_web_browser." ". escape(em,'#%')." &"
@@ -188,7 +190,7 @@ fun! riv#link#hi_hover() "{{{
     let idx = s:get_P_or_W_idx(line,col)
     
     if idx != -1
-        let obj = riv#ptn#match_object(line, g:_riv_p.link_all , idx)
+        let obj = riv#ptn#match_object(line, g:_riv_p.link_all, idx)
         if !empty(obj) && obj.start < col
             let bgn = obj.start + 1
             let end = obj.end

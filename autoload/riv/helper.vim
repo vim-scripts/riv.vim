@@ -24,33 +24,50 @@ fun! riv#helper#run() "{{{
 endfun "}}}
 
 " init "{{{
-let s:helper = { 'name' : '_Helper_', 
-            \}
-let s:helper.maps = {
-    \  '<Enter>'  : 'riv#helper#enter',
-    \  '<KEnter>' : 'riv#helper#enter',
-    \  'q'        : 'riv#helper#exit'  ,
-    \  '<Esc>'    : 'riv#helper#exit'  ,
-    \  '<Tab>'    : 'riv#helper#tab'  ,
-    \  '<S-Tab>'  : 'riv#helper#tab'  ,
-    \  '/'        : 'riv#helper#run'  ,
-    \}
-let s:helper.contents = [[]]
-let s:helper.content_title = "Helper"
-let s:helper.lines = []
-let s:helper.clist = []
-let s:helper.input = ""
-let s:helper.syntax_func = ""
-let s:helper.c_id = 0
+let s:helper = {}
+let s:helper = { 'name' : '_Helper_' }
+fun! s:helper.new() dict "{{{
+    let self.maps = {
+        \  '<Enter>'  : 'riv#helper#enter',
+        \  '<KEnter>' : 'riv#helper#enter',
+        \  'q'        : 'riv#helper#exit'  ,
+        \  '<Esc>'    : 'riv#helper#exit'  ,
+        \  '<Tab>'    : 'riv#helper#tab'  ,
+        \  '<S-Tab>'  : 'riv#helper#tab'  ,
+        \  '/'        : 'riv#helper#run'  ,
+        \}
+    let self.contents = [[]]
+    let self.content_title = "Helper"
+    let self.lines = []
+    let self.clist = []
+    let self.input = ""
+    let self.syntax_func = ""
+    let self.c_id = 0
+    let self.signs = []
+    return self
+endfun "}}}
 "}}}
 fun! s:helper.win(...) dict "{{{
-    call self.new()
-    call self.set()
-    call self.run()
-endfun "}}}
-fun! s:helper.new() dict "{{{
+
+    let self.prev_file = expand('%:p')
+
+    if a:0 && a:1 =~ 'v'
+        let self.vert = 1
+        let sp = 'vert top 25new'
+    else
+        let self.vert = 0
+        let sp = 'bot 8new'
+    endif
+
     if !s:get_buf(self.name)
-        exec 'noa keepa bot 5new  +setl\ nobl '.self.name
+        exec 'noa keepa '.sp.' +setl\ nobl '.self.name
+    endif
+
+    call self.set()
+    if a:0 && a:1 =~ 'I'
+        call self.render()
+    else
+        call self.run()
     endif
 endfun "}}}
 fun! s:helper.run() dict "{{{
@@ -96,24 +113,31 @@ fun! s:helper.set() dict "{{{
 	if v:version > 702
 		setl nornu noudf cc=0
 	en
+
+	syn clear
     call call(self.syntax_func,[])
 
     call self.map()
 
 endfun "}}}
-fun! s:helper.hi() dict "{{{
-    " let [row,col] = getpos('.')[1:2]
-    " execute '2match' "none"
-    " execute '2match' "DiffText".' /\%'.(row).'l/'
-endfun "}}}
 fun! s:helper.exit() dict "{{{
 	cal s:get_buf(s:helper.name)
+
+    if has("signs")
+        let self.signs = []
+        sign unplace 21
+        sign unplace 22
+    endif
+
 	redraw
 	try 
 	    noa bun!
     catch 
 	    noa close! 
     endtry
+
+    return s:get_buf(self.prev_file)
+
 endfun "}}}
 fun! s:helper.tab() dict "{{{
     let self.c_id = self.c_id == len(self.contents)-1 ? 0 : self.c_id + 1
@@ -122,6 +146,7 @@ fun! s:helper.render() dict "{{{
     cal s:helper.content()
     cal s:helper.stats()
     cal s:helper.prompt()
+    call s:helper.sign()
 endfun "}}}
 fun! s:helper.stats() dict "{{{
     let chooser = ""
@@ -131,7 +156,7 @@ fun! s:helper.stats() dict "{{{
     let title = self.content_title
 
     let &l:stl = "%1*".self.content_title .":%* ". chooser
-                \."%=Matching Numbers : ". len(self.clist).""
+                \."%=Num: ". len(self.clist).""
 endfun "}}}
 fun! s:helper.prompt() dict "{{{
     redraw | echohl Comment | echo ">>" | echohl Normal | echon self.input
@@ -155,37 +180,57 @@ fun! s:helper.content() dict "{{{
 
     let self.lines = map(copy(self.clist), 'self.contents[self.c_id][v:val]')
     let len = len(self.clist)
-    if len==0
-        resize 1
-    elseif len <=4
-        exe "resize " len
-    elseif winheight(0)<=5
-        resize 5
+    if self.vert == 0
+        if len==0
+            resize 1
+        elseif len <=4
+            exe "resize " len
+        elseif winheight(0)<=5
+            resize 5
+        endif
     endif
+
     setl ma
-    1,$d_
-    if len==0
-        call setline(1,"=== No Match ===")
-    else
-        call setline(1,self.lines)
-    endif
+        1,$d_
+        if len==0
+            call setline(1,"=== No Match ===")
+        else
+            call setline(1,self.lines)
+        endif
     setl noma
+endfun "}}}
+if has("signs") "{{{
+    sign define riv_conceal text=_ texthl=SignColumn
+endif "}}}
+fun! s:helper.sign() dict "{{{
+    if !has("signs") || empty(self.signs) | return | endif
+    let buf = bufnr('%')
+    exe 'sign place 21 name=riv_conceal line=100 buffer='.buf
+    sign unplace 22
+    for i in range(len(self.signs))
+        let sign = self.signs[i]
+        let num = index(self.clist, i)+1
+        if num
+            exe 'sign place 22 name='.sign. ' line='.num.' buffer='.buf
+        endif
+    endfor
+    sign unplace 21
 endfun "}}}
 
 fun! s:get_buf(name) "{{{
     """ if buffer exists , go to buffer and return 1
     """ else return 0
-    let n = bufwinnr(bufnr(a:name))
+    let n = bufwinnr(a:name)
     if  n != -1
         exe  n . "wincmd w"
-        return n
+        return 1
     else
         return 0
     endif
 endfun "}}}
 
 fun! riv#helper#new() "{{{
-    return s:helper
+    return s:helper.new()
 endfun "}}}
 let &cpo = s:cpo_save
 unlet s:cpo_save

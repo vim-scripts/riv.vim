@@ -10,6 +10,10 @@ set cpo-=C
 let s:p = g:_riv_p
 let s:list_or_nonspace = s:p.all_list.'|^\S'
 
+let s:f_cols = []
+let s:f_row = 0
+let s:f_buf = 0
+
 " for new line's indent
 fun! riv#insert#indent(row) "{{{
     let pnb_num = prevnonblank(a:row - 1)
@@ -78,68 +82,76 @@ fun! riv#insert#indent(row) "{{{
     return ind
 endfun "}}}
 
-" indent for the same line action
-fun! riv#insert#fix_indent(row) "{{{
-    
-    " return GetRSTIndent(a:row)
-    " have some fix for insert with GetRSTIndent.
-    let pnb_num = prevnonblank(a:row - 1)
-    if pnb_num == 0
-        return 0
+fun! riv#insert#fixed_col(row,col,sft) "{{{
+    " return with fix indentation with row col and direction
+    " context is the item with smaller indentation (parent)
+    " find all possible context of current row
+    if s:f_row == a:row && s:f_buf == bufnr('%')
+        return riv#ptn#fix_sfts(a:col, s:f_cols, a:sft)
     endif
+    let pnb_row = prevnonblank(a:row - 1)
+    if pnb_row == 0
+        return a:col + a:sft
+    endif
+    let f_idts = [indent(pnb_row)+1]
 
-    let p_line = getline(a:row - 1)
-
-    " Field List
-    " 1:ind
-    let p_ind =  matchend(p_line, g:_riv_p.field_list_full)
-    if p_ind != -1
-        return p_ind
+    let blk_row = riv#ptn#get(g:_riv_p.literal_block, a:row)
+    if blk_row
+        let f_idts += [indent(blk_row)+1+&sw]
     endif
-
-    let pnb_line = getline(pnb_num)
-    let ind = indent(pnb_num)
-    
-    " list
-    " <=3: ind: we want a stop at the list begin here
-    let l_ind = matchend(pnb_line, g:_riv_p.all_list)
-    if l_ind != -1
-        return ind
-    endif
-    
-    " literal-block
-    " 1/2+:ind  
-    " 2:4
-    let l_ind = matchend(pnb_line, g:_riv_p.literal_block)
-    if l_ind != -1 &&  a:row == pnb_num+2
-        return 4
-    endif
-
-    " exp_markup
-    " 1~2: ind
-    let l_ind = matchend(pnb_line, g:_riv_p.exp_mark)
-    if l_ind != -1 &&  a:row <= pnb_num+2
-        return (ind + l_ind - matchend(pnb_line, g:_riv_p.indent))
-    endif
-    
-    " without match
-    " 1+: search list/exp_mark or  \S starting line to stop.
-    if a:row >= pnb_num+1
-        call cursor(pnb_num,1)
-        let p_num = searchpos(g:_riv_p.indent_stoper, 'bW')[0]
-        let p_line = getline(p_num)
-        let l_ind  = matchend(p_line,'^\s*\.\.\s')
-        if l_ind != -1
-            return l_ind
+    let lst_row = riv#list#get_all_list(a:row)
+    if lst_row 
+        let lst_idt = indent(lst_row)+1
+        let lst_cdt  =riv#list#get_con_idt(getline(lst_row))
+        let f_idts += [lst_idt,lst_cdt]
+        let par_row = riv#list#get_parent(lst_row)
+        if par_row
+            let par_idt = indent(par_row)+1
+            let par_cdt  =riv#list#get_con_idt(getline(par_row))
+            let f_idts += [par_idt, par_cdt]
         endif
-        let l_ind = matchend(p_line, g:_riv_p.all_list)
-        if l_ind != -1
-            return indent(p_num)
-        endif
+    else
+        let exp_row = riv#ptn#get(g:_riv_p.exp_mark, a:row)
+        let exp_cdt = riv#ptn#exp_con_idt(getline(exp_row))
+        let f_idts += [exp_cdt]
     endif
+
+    let s:f_cols = f_idts
+    let s:f_row = a:row
+    let s:f_buf = bufnr('%')
+    return riv#ptn#fix_sfts(a:col,f_idts,a:sft)
     
-    return ind
+endfun "}}}
+fun! riv#insert#fixed_sft(row,col,sft) "{{{
+    return riv#insert#fixed_col(a:row,a:col,a:sft) - a:col
+endfun "}}}
+fun! riv#insert#get_fidt() "{{{
+    return riv#insert#fixed_col(line('.'),col('.'),&sw)
 endfun "}}}
 
+fun! riv#insert#shiftleft(row,col) "{{{
+    " shift in insert mode.
+    " should in blank line.
+    let sft = -&sw
+    let fix_sft = riv#insert#fixed_sft(a:row,a:col,sft)
+    if fix_sft != sft && fix_sft!=0
+        return repeat("\<Left>\<Del>", abs(fix_sft))
+    else
+        return ""
+    endif
+endfun "}}}
+                                            
+fun! riv#insert#shiftright(row,col) "{{{
+    let sft = &sw
+    let fix_sft = riv#insert#fixed_sft(a:row,a:col,sft)
+    if fix_sft != sft && fix_sft!=0
+        return repeat("\<Space>", abs(fix_sft))
+    else
+        return ""
+    endif
+endfun "}}}
+if expand('<sfile>:p') == expand('%:p') 
+
+endif
 let &cpo = s:cpo_save
 unlet s:cpo_save
