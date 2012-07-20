@@ -26,6 +26,9 @@ fun! s:escape_v2m(ptn) "{{{
     return ptn
 endfun "}}}
 
+fun! riv#ptn#escape(str) "{{{
+    return escape(a:str, '.^$*[]\@+=~')
+endfun "}}}
 fun! s:normlist(list,...) "{{{
     " return list with words
     return filter(map(a:list,'matchstr(v:val,''\w\+'')'), ' v:val!=""')
@@ -47,6 +50,21 @@ fun! riv#ptn#match_object(str,ptn,...) "{{{
     let s.end    = s.start + len(s.str)
     return s
 endfun "}}}
+fun! riv#ptn#match_obj_list(str,ptn) "{{{
+    " return a list contain all match object in str.
+    let obj_list =[]
+    let idx = 0
+    while idx != -1
+        let obj = riv#ptn#match_object(a:str,a:ptn,idx)
+        if empty(obj)
+            break
+        else
+            call add(obj_list, obj)
+            let idx = obj.end
+        endif
+    endwhile
+    return obj_list
+endfun "}}}
 
 fun! riv#ptn#get_WORD_idx(line, col) "{{{
     " if cursor is in a WORD ,return it's idx , else return -1
@@ -62,6 +80,12 @@ fun! riv#ptn#get_phase_idx(line, col) "{{{
     let ptn = printf('`[^`]*\%%%dc[^`]*`__\?\|\%%%dc`[^`]*`__\?', a:col, a:col)
     return match(a:line, ptn)
 endfun "}}}
+fun! riv#ptn#get_inline_markup_obj(line, col, bgn) "{{{
+    " if cursor is in a phase ,return it's idx , else return -1
+    let ptn = '\v%<'.a:col.'c%(^|\s)([`*])\S.{-}%(\S)@<=\1_{,1}' . g:_riv_p.ref_end .   '%>'.a:col.'c'
+    return riv#ptn#match_object(a:line, ptn, a:bgn)
+endfun "}}}
+
 fun! riv#ptn#get_WORD_obj(line,col) "{{{
     let ptn = printf('\%%%dc.',a:col)
     if matchstr(a:line, ptn)=~'\S'
@@ -100,16 +124,21 @@ fun! riv#ptn#init() "{{{
     " +----+---+
     "                ^\s*\%(|\s.\{-}\)\=+\%([-=]\++\)\+\%(.\{-}\s|\)\=\s*$
     let tbl_fence = '%(\|\s.{-})=\+%([-=]+\+)+%(.{-}\s\|)='
+    let tbl_sepr  = '%(\|\s.{-})=\+%(-+\+)+%(.{-}\s\|)='
+    let tbl_head  = '%(\|\s.{-})=\+%(\=+\+)+%(.{-}\s\|)='
     let tbl_line  = '\|\s.{-}\s\|'
     let tbl_all   = tbl_fence . '|' . tbl_line
 
     let tbl_wrap = '\v^\s*%s\s*$'
 
     let s:p.table_fence = printf(tbl_wrap, tbl_fence)
+    let s:p.table_sepr = printf(tbl_wrap, tbl_sepr)
+    let s:p.table_head = printf(tbl_wrap, tbl_head)
     let s:p.table_line  = printf(tbl_wrap, tbl_line)
     let s:p.table  =  printf(tbl_wrap, tbl_all)
+    let s:p.table_cell = '\v\|@<=[^|]+\|@='
 
-    let s:p.cell  = '\v%(^|\s)\|\s\zs'
+    let s:p.cell  = '\v\|\s\zs'
     let s:p.cell0 = '\v^\s*\|\s\zs'
 
     " ======  ===============
@@ -269,7 +298,7 @@ fun! riv#ptn#init() "{{{
     let g:_riv_t.file_ext_lst = s:normlist(split(g:riv_file_link_ext,','))
 
     let file_end = '%($|\s)'
-    if g:riv_localfile_linktype == 1
+    if g:riv_file_link_style == 1
         " *.rst *.vim xxx/
         let file_name = '[[:alnum:]~./][[:alnum:]~:./\\_-]*'
         let file_start = '%(\_^|\s)'
@@ -277,7 +306,7 @@ fun! riv#ptn#init() "{{{
         let link_file  = file_start . '@<=' . file_name
                     \.'%(\.%('. s:p.file_ext_ptn .')|/)\ze'. file_end
         let s:p.link_file = '\v' . link_file
-    elseif g:riv_localfile_linktype == 2
+    elseif g:riv_file_link_style == 2
         " [*]  [xxx/] [*.vim]
         let s:p.file_ext_ptn = join(g:_riv_t.file_ext_lst,'|')
         " we should make sure it's not citation, footnote (with preceding '..')
@@ -301,6 +330,7 @@ fun! riv#ptn#init() "{{{
     let ref_end = '%($|\s|[''")\]}>/:.,;!?\\-])'
 
     let s:p.ref_name = ref_name
+    let s:p.ref_end = ref_end
     
     let ref_normal = '<'.ref_name.'_\ze'
     let ref_phase  = '`[^`\\]*%(\\.[^`\\]*)*`_\ze'
@@ -512,8 +542,9 @@ endfun "}}}
 
 " Test 
 if expand('<sfile>:p') == expand('%:p') 
-    echo '-p xxx   efefe' =~ '\v^\s*%(-\w%( \w+)=|--[[:alnum:]_-]+%(\=\w+)=|/\u)%(, %(-\w%( \w+)=|--[[:alnum:]_.-]+%(\=\w+)=|/\u))*%(  |\t)\ze\s*\S'
+    " echo '-p xxx   efefe' =~ '\v^\s*%(-\w%( \w+)=|--[[:alnum:]_-]+%(\=\w+)=|/\u)%(, %(-\w%( \w+)=|--[[:alnum:]_.-]+%(\=\w+)=|/\u))*%(  |\t)\ze\s*\S'
     call riv#ptn#init()
+    " echo riv#ptn#match_obj_list("hello3fefew34",'\d')
 endif
 
 let &cpo = s:cpo_save

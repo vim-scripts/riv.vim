@@ -28,14 +28,11 @@ fun! riv#link#finder(dir) "{{{
         call cursor(srow, scol)
     endif
 endfun "}}}
-fun! s:escape(str) "{{{
-    return escape(a:str, '.^$*[]\@+=~')
-endfun "}}}
 fun! s:normal_ptn(text) "{{{
     let text = substitute(a:text ,'\v(^__=|_=_$)','','g')
     let text = substitute(text ,'\v(^`|`$)','','g')
     let text = substitute(text ,'\v(^\[|\]$)','','g')
-    let text = substitute(s:escape(text),'\s\+','\\s+','g')
+    let text = substitute(riv#ptn#escape(text),'\s\+','\\s+','g')
     return text
 endfun "}}}
 
@@ -57,7 +54,8 @@ fun! s:find_tar(text) "{{{
     let [c_row,c_col] = getpos('.')[1:2]
 
     " The section title are implicit targets.
-    let row = s:find_sect('\v\c^'.norm_ptn.'$')
+    echo norm_ptn
+    let row = s:find_sect('\v\c^\s*'.norm_ptn.'\s*$')
     if row > 0
         return [row, c_col]
     endif
@@ -82,7 +80,11 @@ endfun "}}}
 fun! s:find_sect(ptn) "{{{
     if exists("b:state.sectmatcher")
         for sect in b:state.sectmatcher
-            if getline(sect.bgn) =~ a:ptn
+            let line = getline(sect.bgn) 
+            if line =~ g:_riv_p.section
+                let line = getline(sect.bgn+1)
+            endif
+            if line =~ a:ptn
                 return sect.bgn
             endif
         endfor
@@ -146,7 +148,7 @@ fun! riv#link#open() "{{{
         endif
         return 3
     elseif !empty(mo.groups[5])
-        if g:riv_localfile_linktype == 2
+        if g:riv_file_link_style == 2
             let mo.str = matchstr(mo.str, '^\[\zs.*\ze\]$')
         endif
         if riv#path#is_relative(mo.str)
@@ -154,7 +156,7 @@ fun! riv#link#open() "{{{
             let file = dir . mo.str
             if riv#path#is_directory(file)
                 let file = file . 'index.rst'
-            elseif g:riv_localfile_linktype == 2 && fnamemodify(file, ':e') == ''
+            elseif g:riv_file_link_style == 2 && fnamemodify(file, ':e') == ''
                 let file = file . '.rst'
             endif
         else
@@ -202,7 +204,7 @@ fun! riv#link#hi_hover() "{{{
                     " if link invalid
                     if (is_dir && !isdirectory(file) ) 
                         \ || (!is_dir && !filereadable(file) )
-                        execute '2match' "DiffChange".' /\%'.(row)
+                        execute '2match '.g:riv_file_link_invalid_hl.' /\%'.(row)
                                     \.'l\%>'.(bgn-1) .'c\%<'.(end+1).'c/'
                         return
                     endif

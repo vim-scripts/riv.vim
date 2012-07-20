@@ -5,16 +5,15 @@ QuickStart With Riv
 :Author: Rykka
 :Date: 2012-07-08 22:58:41
 
-Riv use reStructuredText__ syntax to manage documents.
+This is an quick guide for Riv_ 
+and include a simple intro of reStructuredText_ syntax.
 
-which is an easy-to-read, 
-what-you-see-is-what-you-get plaintext markup syntax and parser system.
+.. _Riv: https://github.com/Rykka/riv.vim
+.. _reStructuredText: http://docutils.sourceforge.net/rst.html
 
-__ http://docutils.sourceforge.net/rst.html
 
-This is an quick guide for both reStructuredText and Riv features.
-
-If you have installed ``Riv``
+Use it in Vim.
+If you have installed ``Riv``, 
 Use ``:RivQuickStart`` or ``<C-E>hq`` to get view and edit it in vim.
 
 You can edit it freely as it's not to be written to disk.
@@ -26,7 +25,6 @@ Project
 Project is a place to hold your documents.
 
 Use ``<C-E>ww`` to open your project index. 
-Split current document first with ``<C-W><C-S>`` to split open it.
 
 By default the path is at ``~/Documents/Riv``.
 You can change it by defining project to ``g:riv_projects`` in your vimrc.::
@@ -78,10 +76,10 @@ Lists
 
   A new paragraph of the list item.
 
-* Use ``<C-Enter>`` to create a next list item
+* Use ``<C-Enter>`` to create a list item of the same level
 * '*' , '+' or '-' is for bullet list.
 
-  + ``<S-Enter>`` to create a child list item
+  + Use ``<S-Enter>`` to create a list item of child level
   + sub list 2 
 
     - The List symbols for sublist is auto generated.  
@@ -104,15 +102,16 @@ Lists
 
             So you'd better act on an new line.
 
+      4. Use ``<C-S-Enter>`` to create a list item of parent level
 
 Todos
 -----
 
 Todo item is for keep tracking of todo things.
 
-They are some Todo symbols at the beginning of lists.
+It is some Todo symbols at the beginning of field list , bullet or enumerated lists.
 
-It's not reStructuredText syntax, so no highlighting in converted files.
+It's non-reStructuredText syntax, so no highlighting in converted files.
 
 * A Todo box is used by default.
 
@@ -148,19 +147,27 @@ Links contains targets and references.
 
 A link references is a word following with a underscore.
 
-This is a Link_
+This is a Link reference to Python_ . ``Python_``
 
-Each references needs a link target.
+.. _Python: www.python.org
+
+Each references needs a link target. 
 
 A link target may be explicit or implicit.
 
-.. _Link: www.python.org
+Above reference is point to a explicit target, which It's defined like this::
+
+   .. _Python: www.python.org
+
+Sections, footnotes, citations will generate implicit target.
 
 Jumping
     ``<Enter>`` or Double-Click on links , will bring you to the target.
 
-    Section title are auto generated as implicit target. 
-    So you can create link to sections. e.g:  Sections_
+    Click the reference link to sections will jump to the section title. 
+    e.g.  Sections_
+
+    You can jump back to origin position with `````` or ``''``
 
 Navitgate
     ``<Tab>`` or ``<S-Tab>`` will bring you to next/prev link.
