@@ -22,12 +22,12 @@ Features
  
 For Reading
 
- :Folding_:  Fold document element and showing extra info.
- :Syntax_:   Clearer syntax highlighting.
+ :Folding_:  Get the overview of a document.
+ :Syntax_:   Clearer syntax item highlighting.
 
 For Writing
 
- :Sections_: Showing section level and section number.
+ :Sections_: Create and view sections with ease.
  :Lists_:    Creating lists that's auto numbered, auto leveled and auto indented.
  :Blocks_:   Highlighted and folded blocks.
  :Links_:    Jumping with links. Highlighted hovering links.
@@ -55,7 +55,7 @@ For Managing
   
   or ``:RivQuickStart`` in vim.
 * Instucion: see `Instruction`_ 
-* Also Issues_ and Todos_ for Riv.
+* Also Issues_ and Todo_ for Riv.
 
 Screenshot
 ----------
@@ -65,7 +65,7 @@ Screenshot
 .. image:: http://i.minus.com/iqILF1JxkLgXG.png 
    :alt: overview of the document
 
-**Section Helper**
+**Lists**
 
 .. figure:: http://i.minus.com/iFbYab5lsoMka.png 
 
@@ -82,10 +82,12 @@ Install
 * Using downloaded file. 
   Just extract to your ``.vim`` folder .
 
-:NOTE: Make sure your .vim folder in option ``runtimepath`` 
-       is before the $VIMRUNTIME. 
+:NOTE: Make sure your ``.vim`` folder in option ``runtimepath`` 
+       is before the ``$VIMRUNTIME``. 
 
        Otherwise the syntax/indent files for rst file will using the vim built-in one.
+
+       By default, it is before the ``$VIMRUNTIME``.
 
 * Recommend plugins: 
 
@@ -455,7 +457,9 @@ with standard reStructuredText syntax.
 Sections 
 ~~~~~~~~~
 
-Fold sections by it's level, and showing it's section number.
+Section level and numbers are auto detected.
+
+And it's folded by it's level.
 
 * Actions:
 
@@ -598,7 +602,7 @@ The bullet and enumerated list and field list are auto indented.
 
     Normal and Insert Mode:
     
-    - ``:RivListType0`` ``<C-E>l``` ... ``:RivListType4`` ``<C-E>l4``
+    - ``:RivListType0`` ``<C-E>l1`` ... ``:RivListType4`` ``<C-E>l5``
       Change or add list item symbol of type.
       
       The list item of each type is:: 
@@ -957,42 +961,43 @@ For Grid table, it is auto formatted.
 
     - Inside the Table ::
 
-        +-------+-----------------------------------------------------------+
-        |       | Grid Table (No column or row span supported yet)          |
-        +-------+-----------------------------------------------------------+
-        | Lines | - <Enter> in column to add a new line                     |
-        |       | - This is the second line of in same row of table.        |
-        +-------+-----------------------------------------------------------+
-        | Rows  | - <C-Enter> to add a seperator and a new row              |
-        |       | - <C-S-Enter> to add a header seperator and a new row     |
-        |       |   (There could be only one header seperator in a table)   |
-        |       | - <S-Enter> to jump to next line                          |
-        +-------+-----------------------------------------------------------+
-        | Cell  | <C-E>tn or <Tab> or RivTableNextCell, jump to next cell   |
-        |       | <C-E>tp or <S-Tab> or RivTablePrevCell, jump to prev cell |
-        +-------+-----------------------------------------------------------+
-        | Multi | MultiByte characters are ok                               |
-        |       | 一二三四五  かきくけこ                                    |
-        +-------+-----------------------------------------------------------+
+        +-------+-------------------------------------------------------------+
+        |       | Grid Table (No column or row span supported yet)            |
+        +-------+-------------------------------------------------------------+
+        | Lines | - <Enter> in column to add a new line                       |
+        |       | - This is the second line of in same row of table.          |
+        +-------+-------------------------------------------------------------+
+        | Rows  | - <C-Enter> to add a seperator and a new row                |
+        |       | - <C-S-Enter> to add a header seperator and a new row       |
+        |       |   (There could be only one header seperator in a table)     |
+        |       | - <S-Enter> to jump to next line                            |
+        +-------+-------------------------------------------------------------+
+        | Cell  | - <C-E>tn or <Tab> or RivTableNextCell, jump to next cell   |
+        |       | - <C-E>tp or <S-Tab> or RivTablePrevCell, jump to prev cell |
+        +-------+-------------------------------------------------------------+
+        | Multi | - MultiByte characters are OK                               |
+        |       | - 一二三四五  かきくけこ                                    |
+        +-------+-------------------------------------------------------------+
 
 
-      +-------+-----------------------------------------------------------+
-      |       | Grid Table (No column or row span supported yet)          |
-      +-------+-----------------------------------------------------------+
-      | Lines | - <Enter> in column to add a new line                     |
-      |       | - This is the second line of in same row of table.        |
-      +-------+-----------------------------------------------------------+
-      | Rows  | - <C-Enter> to add a seperator and a new row              |
-      |       | - <C-S-Enter> to add a header seperator and a new row     |
-      |       |   (There could be only one header seperator in a table)   |
-      |       | - <S-Enter> to jump to next line                          |
-      +-------+-----------------------------------------------------------+
-      | Cell  | <C-E>tn or <Tab> or RivTableNextCell, jump to next cell   |
-      |       | <C-E>tp or <S-Tab> or RivTablePrevCell, jump to prev cell |
-      +-------+-----------------------------------------------------------+
-      | Multi | MultiByte characters are ok                               |
-      |       | 一二三四五  かきくけこ                                    |
-      +-------+-----------------------------------------------------------+
+
+      +-------+-------------------------------------------------------------+
+      |       | Grid Table (No column or row span supported yet)            |
+      +-------+-------------------------------------------------------------+
+      | Lines | - <Enter> in column to add a new line                       |
+      |       | - This is the second line of in same row of table.          |
+      +-------+-------------------------------------------------------------+
+      | Rows  | - <C-Enter> to add a seperator and a new row                |
+      |       | - <C-S-Enter> to add a header seperator and a new row       |
+      |       |   (There could be only one header seperator in a table)     |
+      |       | - <S-Enter> to jump to next line                            |
+      +-------+-------------------------------------------------------------+
+      | Cell  | - <C-E>tn or <Tab> or RivTableNextCell, jump to next cell   |
+      |       | - <C-E>tp or <S-Tab> or RivTablePrevCell, jump to prev cell |
+      +-------+-------------------------------------------------------------+
+      | Multi | - MultiByte characters are OK                               |
+      |       | - 一二三四五  かきくけこ                                    |
+      +-------+-------------------------------------------------------------+
 
     See `Grid Tables`__ for syntax details.
 
@@ -1105,7 +1110,7 @@ Some command wrapper to convert rst files to html/xml/latex/odt/...
 With Riv 
 --------
 
-Following features are provided by **Riv**.
+Following features are for better working with reStructuredText documents.
 
 * Project_, Scratch_, Helpers_ are extra function for managing rst documents.
 * File_, Todos_ are extra syntax items for writing rst document.
@@ -1145,7 +1150,7 @@ There are some convenience with projects.
 File
 ~~~~
 
-The link to edit local files.
+The link to edit local files.  ``non-reStructuredText syntax``
 
 As reStructuredText haven't define a pattern for local files currently.
 
@@ -1220,8 +1225,9 @@ Except in following situation:
     + In a literal block or line block or doctest block.
     + In a inline markup 
 
+explicit markup, block , inline markup could not include links. 
 file links in table should use ``:RivCreateLink`` or ``<C-E>il`` to 
-create it manually. no link can be done in other places ::
+create it manually. ::
    
  file.rst_
 
@@ -1232,9 +1238,10 @@ The option ``g:riv_file_link_convert`` can be used to control the converting.
     + when set to 2, link in all rst file in a project will be converted.
     + when set to 1, link only in ``index.rst`` will be converted.
     + when set to 0, no link will be converted.
+    + default is 2
 
 For now it's overhead with substitude by a temp file.
-A parser for docutils is needed in the future.
+A parser for docutils_ is needed in the future.
 
 Scratch
 ~~~~~~~
@@ -1249,7 +1256,9 @@ Scratch is a place for writing diary or notes.
 * ``:RivScratchView`` ``<C-E>cv``
   View Scratch index.
 
-  The index is auto created. You can change the month name using 
+  The index is auto created. Seperate scratches by years and month
+  
+  You can change the month name using 
   ``g:riv_month_names``. 
 
   default is:
@@ -1267,11 +1276,10 @@ You can change it with 'scratch_path' of project setting ,default is 'Scratch'::
 Todos
 ~~~~~
 
-Todo items to keep track of todo things.
+Todo items to keep track of todo things.  ``non-reStructuredText syntax``
 
 It is Todo-box or Todo-keywords in a bullet/enumerated/field list.
 
-It is not defined by reStructuredText syntax.
 
 * Todo Box:
 
@@ -1296,7 +1304,7 @@ It is not defined by reStructuredText syntax.
   
     default is ``"TODO,DONE;FIXME,FIXED;START,PROCESS,STOP"``,
 
-    :Note: the end of each group is considered as the 'DONE' keyword
+    :Note: the last one of each group is considered as the finish keyword.
 
 
 * Datestamps:

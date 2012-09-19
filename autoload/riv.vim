@@ -2,8 +2,8 @@
 "    Name: riv.vim
 "    File: riv.vim
 " Summary: Riv autoload main
-"  Author: Rykka G.Forest
-"  Update: 2012-07-07
+"  Author: Rykka G.F
+"  Update: 2012-09-19
 "=============================================
 let s:cpo_save = &cpo
 set cpo-=C
@@ -23,12 +23,14 @@ fun! s:normlist(list,...) "{{{
 endfun "}}}
 fun! riv#error(msg) "{{{
     echohl ErrorMsg
-    echo a:msg
+    echo '[Error:]'
+    echon a:msg
     echohl Normal
 endfun "}}}
 fun! riv#warning(msg) "{{{
     echohl WarningMsg
-    echo a:msg
+    echo '[Warnging]'
+    echon a:msg
     echohl Normal
 endfun "}}}
 "}}}
@@ -72,11 +74,11 @@ fun! riv#load_menu(menu_list) "{{{
     endfor
 endfun "}}}
 fun! riv#show_menu() "{{{
-    if !exists("b:current_syntax") || b:current_syntax != 'rst'
-        menu disable Riv.*
-        menu enable Riv.Index
+    if expand('%:e') != 'rst'
+        sil! menu disable Riv.*
+        sil! menu enable Riv.Index
     else
-        menu enable Riv.*
+        sil! menu enable Riv.*
     endif
 endfun "}}}
 "}}}
@@ -88,11 +90,13 @@ let s:default.options = {
     \'buf_leader'         : '<C-E>',
     \'buf_ins_leader'     : '<C-E>',
     \'file_link_ext'      : 'vim,cpp,c,py,rb,lua,pl',
+    \'file_ext_link_hl'   : 1,
     \'file_link_invalid_hl' : 'ErrorMsg',
     \'file_link_style'    : 1,
     \'file_link_convert'  : 1,
     \'highlight_code'     : "lua,python,cpp,javascript,vim,sh",
     \'link_cursor_hl'     : 1,
+    \'create_link_pos'    : '$',
     \'todo_levels'        : " ,o,X",
     \'todo_priorities'    : "ABC",
     \'todo_default_group' : 0,
@@ -100,7 +104,8 @@ let s:default.options = {
     \'todo_keywords'      : "TODO,DONE;FIXME,FIXED;START,PROCESS,STOP",
     \'fold_blank'         : 2,
     \'fold_level'         : 3,
-    \'fold_section_mark'  : "-",
+    \'fold_section_mark'  : ".",
+    \'content_format'     : '%i%l%n %t',
     \'auto_fold_force'    : 1,
     \'auto_fold1_lines'   : 5000,
     \'auto_fold2_lines'   : 3000,
@@ -112,6 +117,7 @@ let s:default.options = {
     \'rst2s5_args'        : "",
     \'rst2latex_args'     : "",
     \'section_levels'     : '=-~"''`',
+    \'html_code_hl_style' : 'default',
     \'fuzzy_help'         : 0,
     \'auto_format_table'  : 1,
     \'fold_info_pos'      : 'right',
@@ -154,12 +160,13 @@ let s:default.maps = {
     \'RivTodoType3'      : 'call riv#todo#change(2)',
     \'RivTodoType4'      : 'call riv#todo#change(3)',
     \'RivViewScratch'    : 'call riv#create#view_scr()',
-    \'RivTitle1'         : 'call riv#create#title(1)',
-    \'RivTitle2'         : 'call riv#create#title(2)',
-    \'RivTitle3'         : 'call riv#create#title(3)',
-    \'RivTitle4'         : 'call riv#create#title(4)',
-    \'RivTitle5'         : 'call riv#create#title(5)',
-    \'RivTitle6'         : 'call riv#create#title(6)',
+    \'RivTitle1'         : 'call riv#section#title(1)',
+    \'RivTitle2'         : 'call riv#section#title(2)',
+    \'RivTitle3'         : 'call riv#section#title(3)',
+    \'RivTitle4'         : 'call riv#section#title(4)',
+    \'RivTitle5'         : 'call riv#section#title(5)',
+    \'RivTitle6'         : 'call riv#section#title(6)',
+    \'RivTitle0'         : 'call riv#section#title(0)',
     \'RivTestReload'     : 'call riv#test#reload()',
     \'RivTestFold0'      : 'call riv#test#fold(0)',
     \'RivTestFold1'      : 'call riv#test#fold(1)',
@@ -191,6 +198,7 @@ let s:default.maps = {
     \'RivScratchCreate'  : 'call riv#create#scratch()',
     \'RivScratchView'    : 'call riv#create#view_scr()',
     \'RivQuickStart'     : 'call riv#action#quick_start()',
+    \'RivCreateContent'  : 'call riv#section#content()',
     \}
 "}}}
 
@@ -198,9 +206,9 @@ let s:default.g_maps = {
     \'RivIndex'          : ['ww', '<C-W><C-W>'] ,
     \'Riv2HtmlIndex'     : ['wi', '<C-W><C-I>'] ,
     \'RivAsk'            : ['wa', '<C-W><C-A>'] ,
-    \'RivScratchCreate'  : ['cc', '<C-C><C-C>'] ,
+    \'RivScratchCreate'  : ['sc', '<C-C><C-C>'] ,
     \'RivScratchView'    : ['cv', '<C-C><C-V>'] ,
-    \'RivHelpTodo'      : ['ht', '<C-h><C-t>'] ,
+    \'RivHelpTodo'       : ['ht', '<C-h><C-t>'] ,
     \'RivHelpFile'       : ['hf', '<C-h><C-f>'] ,
     \}
 let s:default.fold_maps = { 
@@ -221,8 +229,8 @@ let s:default.buf_maps = {
     \'RivLinkOpen'       : ['',  'n',  'ko'],
     \'RivLinkNext'       : ['<TAB>',    'n',  'kn'],
     \'RivLinkPrev'       : ['<S-TAB>',  'n',  'kp'],
-    \'RivShiftRight' : [['>', '<C-ScrollwheelDown>' ],  'mi',  'lu'],
-    \'RivShiftLeft'  : [['<', '<C-ScrollwheelUp>'],  'mi',  'ld'],
+    \'RivShiftRight'     : [['>', '<C-ScrollwheelDown>' ],  'mi',  'll'],
+    \'RivShiftLeft'      : [['<', '<C-ScrollwheelUp>'],  'mi',  'lh'],
     \'RivListFormat'     : [['='],  'mi',  'l='],
     \'RivListType0'      : ['',  'mi',  'l1'],
     \'RivListType1'      : ['',  'mi',  'l2'],
@@ -241,6 +249,7 @@ let s:default.buf_maps = {
     \'RivTodoType2'      : ['',  'mi',  'e2'],
     \'RivTodoType3'      : ['',  'mi',  'e3'],
     \'RivTodoType4'      : ['',  'mi',  'e4'],
+    \'RivTitle0'         : ['',  'mi',  's0'],
     \'RivTitle1'         : ['',  'mi',  's1'],
     \'RivTitle2'         : ['',  'mi',  's2'],
     \'RivTitle3'         : ['',  'mi',  's3'],
@@ -264,6 +273,7 @@ let s:default.buf_maps = {
     \'RivCreateDate'     : ['',  'mi',  'id'],
     \'RivCreateFoot'     : ['',  'mi',  'if'],
     \'RivCreateTime'     : ['',  'mi',  'it'],
+    \'RivCreateContent'  : ['',  'mi',  'ic'],
     \'RivTestReload'     : ['',  'm',   't`'],
     \'RivTestFold0'      : ['',  'm',   't1'],
     \'RivTestFold1'      : ['',  'm',   't2'],
@@ -288,6 +298,18 @@ let s:default.buf_imaps = {
     \'<Tab>'        : 'riv#action#ins_tab()'     ,
     \'<S-Tab>'      : 'riv#action#ins_stab()'    ,
     \} 
+
+let s:default.buf_nmaps = {
+    \'<C-E><'         : '<',
+    \'<C-E>>'         : '>',
+    \'<C-E>='         : '=',
+    \'<S-ScrollwheelDown>' : '>',
+    \'<S-ScrollwheelUp>'   : '<',
+    \}
+let s:default.buf_vmaps = {
+    \'<S-ScrollwheelDown>' : '>gv',
+    \'<S-ScrollwheelUp>'   : '<gv',
+    \}
 "}}}
 " menus "{{{
 let s:default.menus = [
@@ -296,9 +318,10 @@ let s:default.menus = [
     \['Helper.File\ Helper'               , 'hf'                     , 'RivHelpFile'       ]   ,
     \['Helper.Todo\ Helper'               , 'ht'                     , 'RivHelpTodo'     ]   ,
     \['Helper.Update\ Todo\ Cache'        , 'uc'                     , 'RivTodoUpdateCache']   ,
-    \['Scratch.Create\ Scratch'           , 'cc'                     , 'RivScratchCreate'  ]   ,
+    \['Scratch.Create\ Scratch'           , 'sc'                     , 'RivScratchCreate'  ]   ,
     \['Scratch.View\ Index'               , 'cv'                     , 'RivScratchView'    ]   ,
     \['--Action--'                        , '  '                     , '  '                ]   ,
+    \['Title.Create\ level0\ Title'       , 's0'                     , 'RivTitle0'         ]   ,
     \['Title.Create\ level1\ Title'       , 's1'                     , 'RivTitle1'         ]   ,
     \['Title.Create\ level2\ Title'       , 's2'                     , 'RivTitle2'         ]   ,
     \['Title.Create\ level3\ Title'       , 's3'                     , 'RivTitle3'         ]   ,
@@ -329,6 +352,7 @@ let s:default.menus = [
     \['Todo.Todo\ Type3'                  , 'e3'                     , 'RivTodoType3'      ]   ,
     \['Create.Datestamp'                  , 'id'                     , 'RivCreateDate'     ]   ,
     \['Create.Timestamp'                  , 'it'                     , 'RivCreateTime'     ]   ,
+    \['Create.Content\ Table'             , 'it'                     , 'RivCreateContent'     ]   ,
     \['Delete.Delete\ Current\ File'      , 'df'                     , 'RivDelete'         ]   ,
     \['--Convert---'                      , '  '                     , '  '                ]   ,
     \['Convert.Open\ Build\ Path'         , '2b'                     , 'Riv2BuildPath'     ]   ,
@@ -476,6 +500,10 @@ fun! riv#load_conf() "{{{1
     
     let s:c.sect_lvs = split(g:riv_section_levels,'\zs')
     let s:c.sect_lvs_b = split('#*+:.^','\zs')
+    let s:c.sect_lvs_style = [[3,'#']]
+    for s in s:c.sect_lvs
+        call add(s:c.sect_lvs_style,[2,s])
+    endfor
 
     if !empty(g:riv_i_tab_user_cmd) && g:riv_i_tab_user_cmd =~ '\\<'
         " it's literal string and is '\<xx>'
@@ -512,6 +540,7 @@ fun! riv#load_conf() "{{{1
     let s:e.NOT_DATESTAMP = "Riv: Not a Datestamp"
     let s:e.NOT_RST_FILE  = "Riv: NOT A RST FILE"
     let s:e.FILE_NOT_FOUND = "Riv: Could not find the file"
+    let s:e.REF_NOT_FOUND = "Riv: Could not find the reference"
 
 endfun "}}}
 fun! riv#init() "{{{

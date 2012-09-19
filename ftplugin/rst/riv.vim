@@ -1,9 +1,9 @@
 "=============================================
 "    Name: riv.vim
 "    File: riv.vim
-" Summary: ReST file plugin
-"  Author: Rykka G.Forest
-"  Update: 2012-06-28
+" Summary: rst filetype plugin
+"  Author: Rykka G.F
+"  Update: 2012-09-19
 "=============================================
 
 let g:riv_force = exists("g:riv_force") ? g:riv_force : 0
@@ -17,10 +17,10 @@ setl comments=fb:.. commentstring=..\ %s
 setl formatoptions+=tcroql
 setl expandtab
 let b:undo_ftplugin = "setl fdm< fde< fdt< com< cms< et< fo<"
-            \ "| unlet! b:state b:fdl_dict b:fdl_list"
+            \ "| sil! unlet! b:riv_state b:riv_obj b:riv_flist"
             \ "| mapc <buffer>"
-            \ "| menu disable RIV.*"
-            \ "| menu enable RIV.Index"
+            \ "| sil! menu disable Riv.*"
+            \ "| sil! menu enable Riv.Index"
             \ "| au! RIV_BUFFER"
 " for table init
 let b:riv={}
@@ -29,6 +29,16 @@ if !exists("*s:map") "{{{
 fun! s:imap(map_dic) "{{{
     for [name, act] in items(a:map_dic)
         exe "ino <buffer><expr><silent> ".name." ".act
+    endfor
+endfun "}}}
+fun! s:nmap(map_dic) "{{{
+    for [name, act] in items(a:map_dic)
+        exe "nor <buffer><silent> ".name." ".act
+    endfor
+endfun "}}}
+fun! s:vmap(map_dic) "{{{
+    for [name, act] in items(a:map_dic)
+        exe "vnor <buffer><silent> ".name." ".act
     endfor
 endfun "}}}
 fun! s:map(map_dic) "{{{
@@ -66,6 +76,8 @@ endif "}}}
 
 call s:imap(g:riv_default.buf_imaps)
 call s:map(g:riv_default.buf_maps)
+call s:nmap(g:riv_default.buf_nmaps)
+call s:vmap(g:riv_default.buf_vmaps)
 call s:fold_map(g:riv_default.fold_maps)
 call riv#show_menu()
 aug RIV_BUFFER "{{{

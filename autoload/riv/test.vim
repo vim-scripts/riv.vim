@@ -2,8 +2,8 @@
 "    Name: test.vim
 "    File: test.vim
 " Summary: test 
-"  Author: Rykka G.Forest
-"  Update: 2012-07-07
+"  Author: Rykka G.F
+"  Update: 2012-09-19
 "=============================================
 let s:cpo_save = &cpo
 set cpo-=C
@@ -198,8 +198,8 @@ fun! riv#test#reload() "{{{
     echo "Riv Reloaded."
 endfun "}}}
 fun! riv#test#show_obj() "{{{
-    echo b:fdl_list[line('.')]
-    if exists("b:riv_obj")
+    echo b:riv_flist[line('.')]
+    if exists("b:riv_obj"g
         echo b:riv_obj[line('.')]
     endif
 endfun "}}}
@@ -221,10 +221,10 @@ fun! riv#test#repl_link() "{{{
                 \'[/home/index] ' ,
                 \]
     let g:_riv_debug=1
-    let g:riv_file_link_style = 1
+    " let g:riv_file_link_style = 1
     call riv#init()
     call s:test_func(func, arg_list)
-    let g:riv_file_link_style = 2
+    " let g:riv_file_link_style = 2
     call riv#init()
     call s:test_func(func, arg_list)
 endfun "}}}
@@ -290,10 +290,10 @@ fun! riv#test#link_expand() "{{{
                 \ "[aaaa.py]", "[/efe/aaaa.py]", "aaaa/aaa/aa.rst",
                 \ "/aaaa/aaa/aa.rst", "~/aaaa/aaa/aa.rst", "../aaaa/aaa/aa.rst",
                 \]
-    let g:riv_file_link_style = 1
+    " let g:riv_file_link_style = 1
     call riv#init()
     call s:test_func(func, arg_list)
-    let g:riv_file_link_style = 2
+    " let g:riv_file_link_style = 2
     call riv#init()
     call s:test_func(func, arg_list)
 endfun "}}}

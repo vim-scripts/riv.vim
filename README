@@ -1,23 +1,20 @@
 This is a mirror of http://www.vim.org/scripts/script.php?script_id=4112
 
-**Riv** is for reading , writing and managing reStructuredText_ 
-(a simple and powerful plaintext markup syntax) documents in vim.
+**Riv** is a vim plugin for reading, writing and managing reStructuredText_ 
+(a simple and powerful plain text markup).
 
 Short for 'reStructuredText in Vim'. 
 
-It is for people either want to reading documents in a clear way,
-or writing documents in a neat way,
-or manage documents in a wiki way.
+With it, you can::
 
-.. _reStructuredText: http://docutils.sourceforge.net/rst.html
-
+    Read documents clearer.
+    Write documents neater.
+    Manage documents easier.
 
 * Features : see https://github.com/Rykka/riv.vim#features
-* Screenshot:  see https://github.com/Rykka/riv.vim#screenshot
-
-
-* Currently it's a developing version. 
-  So things may change quickly. Keep up-to-date.
-* Both bug reports and feature request are welcome. 
-  Please Post issues at https://github.com/Rykka/riv.vim/issues
+* Screenshot:  see https://github.com/Rykka/riv.vim#on-screen
+* Post issues at https://github.com/Rykka/riv.vim/issues
+  Both bug reports and feature request are welcome. 
+* Changes of this version at https://github.com/Rykka/riv.vim#this
+* Discussion at https://groups.google.com/forum/#!forum/vim_riv
 

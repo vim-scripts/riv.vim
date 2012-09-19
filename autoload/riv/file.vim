@@ -3,13 +3,11 @@
 "    File: file.vim
 " Summary: file operation
 "          find /match/delete/
-"  Author: Rykka G.Forest
-"  Update: 2012-07-07
+"  Author: Rykka G.F
+"  Update: 2012-09-15
 "=============================================
 let s:cpo_save = &cpo
 set cpo-=C
-
-
 
 fun! riv#file#from_str(str) "{{{
     " parse file name from string
@@ -48,8 +46,6 @@ fun! riv#file#split(file) "{{{
     exe "split ".a:file
     let b:riv_p_id = id
 endfun "}}}
-
-
 
 " Helper:  "{{{1
 fun! riv#file#update() "{{{

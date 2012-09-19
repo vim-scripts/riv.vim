@@ -1,9 +1,9 @@
 "=============================================
 "    Name: rst.vim
 "    File: after/syntax/rst.vim
-"  Author: Rykka G.Forest
+"  Author: Rykka G.F
 " Summary: syntax file with options.
-"  Update: 2012-06-12
+"  Update: 2012-09-19
 "=============================================
 let s:cpo_save = &cpo
 set cpo-=C
@@ -32,10 +32,13 @@ syn cluster rstCruft add=rstStandaloneHyperlink
 syn cluster rstCommentGroup add=@rstLinkGroup
 
 if g:riv_file_link_style != 0
-    exe 'syn match rstFileLink `'.s:s.rstFileLink.'`'
+    exe 'syn match rstFileLink &'.s:s.rstFileLink.'&'
     syn cluster rstCruft add=rstFileLink
 endif
-
+if g:riv_file_ext_link_hl == 1
+    exe 'syn match rstFileExtLink &'.s:s.rstFileExtLink.'&'
+    syn cluster rstCruft add=rstFileExtLink
+endif
 
 " Code Highlight: "{{{1
 for code in g:_riv_t.highlight_code
@@ -50,7 +53,16 @@ for code in g:_riv_t.highlight_code
             \.'skip=#^$# '
             \.'end=#^\s\@!# contains=@rst_'.code
         exe 'syn cluster rstDirectives add=rstDirective_'.code
+
+        " For sphinx , the highlight directive can be used for highlighting
+        " code block
+        exe 'syn region rstDirective_hl_'.code.' matchgroup=rstDirective fold '
+            \.'start=#highlights::\s\+'.code.'\_s*# '
+            \.'skip=#^$# '
+            \.'end=#\_^\(..\shighlights::\)\@=# contains=@rst_'.code
+        exe 'syn cluster rstDirectives add=rstDirective_hl_'.code
     endif
+
     unlet s:{code}path
 endfor
 let b:current_syntax = "rst"
@@ -73,6 +85,7 @@ if &background == 'light'
 else
     hi def rstFileLink    guifg=#58A261  gui=underline ctermfg=77 cterm=underline
 endif
+hi link rstFileExtLink rstFileLink
 
 hi def link rstTodoItem     Include
 hi def link rstTodoPrior    Include
