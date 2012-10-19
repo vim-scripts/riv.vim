@@ -8,11 +8,8 @@
 let s:cpo_save = &cpo
 set cpo-=C
 
-
 " Always use magic
-if !&magic
-    set magic
-endif
+if !&magic | set magic | endif
 
 let s:v_char = '[-+?|){}%@&]\|\%(\%(\\\@<!\\\)\@<!%\)\@<!(\|\%(\%(\\\@<!\\\)\@<!@\)\@<![<=>]'
 fun! s:escape_v2m(ptn) "{{{
@@ -27,9 +24,9 @@ fun! s:escape_v2m(ptn) "{{{
 endfun "}}}
 
 fun! riv#ptn#escape(str) "{{{
-    return escape(a:str, '.^$*[]\@+=~')
+    return escape(a:str, '.^$*[]()\@+=~')
 endfun "}}}
-fun! s:normlist(list,...) "{{{
+fun! riv#ptn#norm_list(list,...) "{{{
     " return list with words
     return filter(map(a:list,'matchstr(v:val,''\w\+'')'), ' v:val!=""')
 endfun "}}}
@@ -80,6 +77,36 @@ fun! riv#ptn#get_phase_idx(line, col) "{{{
     let ptn = printf('`[^`]*\%%%dc[^`]*`__\?\|\%%%dc`[^`]*`__\?', a:col, a:col)
     return match(a:line, ptn)
 endfun "}}}
+fun! riv#ptn#get_role_idx(line,col) "{{{
+    " return the index of sphinx role :doc: :download: ...
+    " 
+    " >>> let line = "test :doc:`Index <index>` testtest"
+    " >>> ec riv#ptn#get_role_idx(line, 2)
+    " >>> ec riv#ptn#get_role_idx(line, 10)
+    " >>> ec riv#ptn#get_role_idx(line, 12)
+    " >>> ec riv#ptn#get_role_idx(line, 14)
+    " >>> ec riv#ptn#get_role_idx(line, 28)
+    " -1
+    " 5
+    " 5
+    " 5
+    " -1
+    " 
+    " XXX: when col on ':' and '`' , it's not recognized.
+    let ptn = printf(':[^:`]*:`[^`]*\%%%dc[^`]*\|:[^:`]*\%%%dc[^`:]*:`[^`]*`', a:col,a:col)
+    return match(a:line, ptn)
+endfun "}}}
+fun! riv#ptn#get_tar_idx(line,col) "{{{
+    " return the index of target link.
+    " >>> echo riv#ptn#get_tar_idx(".. _aaa: a.html",3)
+    " 0
+    if a:col <= matchend(a:line, g:_riv_p.link_line_target)
+        return 0
+    else
+        return -1
+    endif
+endfun "}}}
+
 fun! riv#ptn#get_inline_markup_obj(line, col, bgn) "{{{
     " if cursor is in a phase ,return it's idx , else return -1
     let ptn = '\v%<'.a:col.'c%(^|\s)([`*])\S.{-}%(\S)@<=\1_{,1}' . g:_riv_p.ref_end .   '%>'.a:col.'c'
@@ -205,7 +232,7 @@ fun! riv#ptn#init() "{{{
                 \  map(range(len(td_key_list)), 
                 \ '(v:val+1).".". td_key_list[v:val]')
     let g:_riv_t.td_keyword_groups = map(td_key_list, 
-                \ 's:normlist(split(v:val,'',''))')
+                \ 'riv#ptn#norm_list(split(v:val,'',''))')
     
     let td_lv_ptn = '['.join(split(g:riv_todo_levels,','),'').']'
     " '[ ]', '[o]', '[X]'
@@ -225,7 +252,7 @@ fun! riv#ptn#init() "{{{
     "}}}
     
     " it's 'AA|BB|CC|DD'
-    let td_keywords = join(s:normlist(split(g:riv_todo_keywords,'[,;]')),'|')
+    let td_keywords = join(riv#ptn#norm_list(split(g:riv_todo_keywords,'[,;]')),'|')
     let td_key_done =  join(map(copy(g:_riv_t.td_keyword_groups),'v:val[-1]'),'|')
     let g:_riv_t.todo_done_key =  td_key_done
 
@@ -309,24 +336,25 @@ fun! riv#ptn#init() "{{{
     "       [[/xxx/]] => DOC_ROOT/xxx/index.rst
     "
     "    2. sphinx style
-    "       :doc:`xxx.rst`   
-    "       :file:`/xxx/xxx.rst`
+    "       :doc:`xxx`   
+    "       :download:`/xxx/xxx.rst`
     "
     " NOTE:  the [[/xxx.rst]] for converting are not the same with 
     "        /xxx.rst for linking which will link to xxx.rst in the
     "        root of your disk.
     "        This first one is DOC_ROOT for Compatibility with the sphinx and
     "        moinmoin style.
+    "
     
     let fname_bgn = '%(^|\s|[''"([{<,;!?])'
     let fname_end = '%($|\s|[''")\]}>:.,;!?])'
     
-    let g:_riv_t.file_ext_lst = s:normlist(split(g:riv_file_link_ext,','))
+    let g:_riv_t.file_ext_lst = riv#ptn#norm_list(split(g:riv_file_link_ext,','))
 
-    " let file_end = '%($|\s)'
-
-    let s:p.file_ext_ptn = 'rst|'.join(g:_riv_t.file_ext_lst,'|')
-    let file_name = '[[:alnum:]~./][[:alnum:]~:./\\_-]*'
+    let s:p.file_ext_ptn = g:_riv_t.doc_exts
+                \.'|'. join(g:_riv_t.file_ext_lst,'|')
+    " NOTE: the ~/.xxx should not highlight  '~/.' part
+    let file_name = '[[:alnum:]~./][[:alnum:]~:./\\_-]*[[:alnum:]/\\]'
     
     " The link for ext file, for in vim only.
     if g:riv_file_ext_link_hl == 1
@@ -338,23 +366,30 @@ fun! riv#ptn#init() "{{{
         let ext_file_link  = '^^'
     endif
     let s:p.ext_file_link  = '\v'. ext_file_link
-
-    if g:riv_file_link_style == 1
+    
+    " if g:riv_file_link_style == 1
         " moinmoin style
         " [[*]]  [[xxx/]] [[*.vim]]
-        let link_file = fname_bgn.'@<=\[\[' 
+        let link_file1 = fname_bgn.'@<=\[\[' 
                     \. file_name .'\]\]@='. fname_end 
-    elseif g:riv_file_link_style == 2 
+    " elseif g:riv_file_link_style == 2 
         " sphinx style
         " :doc:`file` for rst document
-        " :file:`file.vim` for file link
-        let link_file = fname_bgn.'@<=:%(doc|file):`' 
-                    \. file_name .'`\ze'. fname_end 
-    else
-        let link_file = '^^'
-    endif
+        " :download:`file.vim` for file link
+        " :doc:`Test <test.rst>` could be used
+        let link_file2 = fname_bgn.'@<=:%(doc|download):`%(' 
+                    \. file_name .'|[^`<>]*\<'.file_name.'\>'
+                    \.')`\ze'. fname_end 
+    " else
+        let link_file0 = '^^'
+    " endif
 
-    let s:p.link_file = '\v'. link_file
+    let s:p.moin_link_str = '\[\[\zs.*\ze\]\]'
+    let s:p.sphinx_link_str = ':\%(doc\|download\):`\([^`<>]*<\zs[^`>]*\ze>\|\zs.*\ze\)`'
+
+    let s:p.link_file0 = '\v'. link_file0
+    let s:p.link_file1 = '\v'. link_file1
+    let s:p.link_file2 = '\v'. link_file2
 
     " Reference: "{{{4
     "  xxx_
@@ -389,10 +424,10 @@ fun! riv#ptn#init() "{{{
     " .. __:   or   __
     " `xxx  <xxx>`
     let tar_footnote = '^\.\.\s\zs\[%(\d+|#|#='.ref_name .')\]\ze\_s'
-    let tar_inline = '%(\s|\_^)\zs_`[^:\\]+\ze:\_s`'
-    let tar_normal = '^\.\.\s\zs_[^:\\]+\ze:\_s'
-    let tar_anonymous = '^\.\.\s__:\_s\zs|^__\_s\zs'
-    let tar_embed  = '^%(\s|\_^)_`.+\s<\zs.+\ze>`'
+    let tar_inline = '%(\s|^|[''"([{</:])\zs_`[^`\\]+`\ze'.ref_end
+    let tar_normal = '^\.\.\s\zs_[^:\\]+:\ze%(\s|$)'
+    let tar_anonymous = '^\.\.\s\zs__:\ze\_s|^\zs__\ze%(\s|$)'
+    let tar_embed  = '^%(\s|\_^)\zs_`.+\s<\zs.+>`_\ze'.ref_end
 
     let s:p.link_tar_footnote = '\v'.tar_footnote
     let s:p.link_tar_inline = '\v'.tar_inline
@@ -404,20 +439,25 @@ fun! riv#ptn#init() "{{{
     let link_target = tar_normal
             \.'|'. tar_inline .'|'. tar_footnote .'|'. tar_anonymous
     let s:p.link_target = '\v'.link_target
+    let s:p.link_line_target = '\v'.tar_normal
+            \.'|'. tar_footnote .'|'. tar_anonymous
+
 
 
     " sub match for all_link:
     " 1 link_tar
     " 2 link_ref
     " 3 link_uri
-    "   4 link_uri_body
+    " 4 link_uri_body
     " 5 link_file
-    let s:p.link_all = '\v('. link_target 
-                \ . ')|(' . link_reference
-                \ . ')|(' . link_uri 
-                \ . ')|(' . link_file
-                \ . ')|(' . ext_file_link
-                \. ')'
+    for i in range(3)
+        let s:p['link_all'.i] = '\v('. link_target 
+                    \ . ')|(' . link_reference
+                    \ . ')|(' . link_uri 
+                    \ . ')|(' . link_file{i}
+                    \ . ')|(' . ext_file_link
+                    \. ')'
+    endfor
     "}}}4
     "
     " Miscs: 
@@ -455,7 +495,9 @@ fun! riv#ptn#init() "{{{
     let s:s.rivTodoTmEnd = '\v'.td_tms_end
     
     " Syntax After: "{{{3
-    let s:s.rstFileLink = s:p.link_file
+    for i in range(3)
+        let s:s['rstFileLink'.i] = s:p['link_file'.i]
+    endfor
     let s:s.rstFileExtLink = s:p.ext_file_link
 
     let s:s.rstTodoRegion = '\v\C'.td_list .'@<='. td_b_k . td_prior . '=%(' 
@@ -474,7 +516,6 @@ endfun "}}}
 fun! riv#ptn#strip(str) "{{{
     return matchstr(a:str, '^\s*\zs.\{-}\ze\s*$')
 endfun "}}}
-
 
 fun! riv#ptn#exp_con_idt(line) "{{{
     return matchend(a:line, g:_riv_p.exp_mark)+1
@@ -577,12 +618,42 @@ fun! riv#ptn#fix_sfts(col,f_cols,sft) "{{{
     return riv#ptn#fix_sft(a:col,b_col,a:sft)
 endfun "}}}
 
-" Test 
-if expand('<sfile>:p') == expand('%:p') 
-    " echo '-p xxx   efefe' =~ '\v^\s*%(-\w%( \w+)=|--[[:alnum:]_-]+%(\=\w+)=|/\u)%(, %(-\w%( \w+)=|--[[:alnum:]_.-]+%(\=\w+)=|/\u))*%(  |\t)\ze\s*\S'
+fun! riv#ptn#get_file(str) "{{{
+    " return [file, is_doc] with fetched str.
+    if riv#path#file_link_style() == 1
+        " >>> let g:riv_file_link_style = 1
+        " >>> ec riv#ptn#get_file('[[www]]')
+        " ['www', 'doc']
+        let f = matchstr(a:str, g:_riv_p.moin_link_str)
+        let t = f !~ '^[~]\|^[a-zA-Z]:' ? 'doc' : 'file'
+    elseif riv#path#file_link_style() == 2
+        " >>> ec matchstr(':doc:`Hello <x/hello>`', g:_riv_p.sphinx_link_str)
+        " >>> ec matchstr(':doc:`Hello`', g:_riv_p.sphinx_link_str)
+        " x/hello
+        " Hello
+        let f = matchstr(a:str, g:_riv_p.sphinx_link_str)
+        let t = match(a:str,':doc:')!=-1 ? 'doc' : 'file'
+    endif
+    return [f, t]
+endfun "}}}
+
+fun! riv#ptn#link_file() "{{{
+    " >>> echo riv#ptn#link_file()
+    return g:_riv_p['link_file'.riv#path#file_link_style()]
+endfun "}}}
+fun! riv#ptn#link_all() "{{{
+    " >>> echo riv#ptn#link_all()
+    return g:_riv_p['link_all'.riv#path#file_link_style()]
+endfun "}}}
+fun! riv#ptn#rstFileLink() "{{{
+    " >>> echo riv#ptn#rstFileLink() 
+    return g:_riv_s['rstFileLink'.riv#path#file_link_style()]
+endfun "}}}
+
+if expand('<sfile>:p') == expand('%:p') "{{{
     call riv#ptn#init()
-    " echo riv#ptn#match_obj_list("hello3fefew34",'\d')
-endif
+    call riv#test#doctest('%','%',1)
+endif "}}}
 
 let &cpo = s:cpo_save
 unlet s:cpo_save

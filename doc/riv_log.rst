@@ -1,6 +1,42 @@
 Changelogs
 ==========
 
+* 0.72 
+
+  :Syntax_: DONE 2012-09-25 highlight reStructuredText in python DocString.
+  :File_: FIXED 2012-09-25 Fix the file link highlight of ``~/.xxx``
+  :Sections_: FIXED 2012-10-04 Fix the section Helper.
+  :Syntax_: FIXED 2012-10-04 Workaround of the Spell checking.
+  :Intro_: DONE 2012-10-13 Options section.
+  :Intro_: DONE 2012-10-15 Commands section.
+  :Intro_: DONE 2012-10-16 Rewrite riv_quickstart
+  :Intro_: DONE 2012-10-14 Rewrite riv_todo
+  :Intro_: DONE 2012-10-14 Cheatsheet and Specification added.
+  :File_:  DONE 2012-10-13 support user defined rst file suffix.
+  :File_:  DONE 2012-10-13 support sphinx embedded :doc: link.
+  :Test:   DONE 2012-10-13 Add `:RivVimTest` for vim script test.
+  :Menu:   FIXED 2012-10-13 Fix menu disable/enable.
+  :Links_: FIXED 2012-10-13 Fix target link jumping.
+  :Commands: DONE 2012-10-15 Rewrite command and menu part.
+
+* 0.71:
+
+  :File_: DONE 2012-09-13 extension style show in vim only.
+  :File_: DONE 2012-09-13 now square style (moinmoin) use ``[[xxx]]``. 
+          easier for regxp match
+  :File_: DONE 2012-09-13 Support Sphinx style  :file:, :doc:
+  :Sections_: DONE 2012-09-17 Use sphinx section default markup style?
+  :Sections_: DONE 2012-09-17 section create shortcut will check if it's 
+              a section title undercursor and repl it.
+  :Sections_: DONE 2012-09-17 A shortcut to create a document tree.
+  :Sections_: DONE 2012-09-17 Add g:riv_content_format
+  :Publish_: DONE 2012-09-13 remove '_`g:riv_file_link_convert`' 
+  :Publish_: DONE 2012-09-18 different style.css for syntax highlighting in html
+  :Publish_: DONE 2012-09-19 Fix link repl errors while converting to html.
+  :Links_: DONE 2012-09-17 Add g:riv_create_link_pos
+  :Miscs_: DONE 2012-09-19 A google group
+
+
 * 0.70:
 
   :Table_:  DONE 2012-07-17 7b407b4b_ a table parser of vim version.
@@ -160,3 +196,7 @@ Changelogs
 .. _Insert:  riv.rst#Insert
 .. _Todos:   riv.rst#Todos
 .. _Helpers: riv.rst#Helpers
+.. _Sections: riv.rst#Sections
+.. _Publish: riv.rst#Publish
+.. _Links: riv.rst#Links
+.. _Miscs: riv.rst#Miscs

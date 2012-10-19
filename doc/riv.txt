@@ -1,43 +1,26 @@
-*riv.txt*         Riv         reStructuredText in Vim
-
-                     __________  .__  ____   ____ ~
-                     \______   \ |__| \   \ /   / ~
-                      |       _/ |  |  \   Y   /  ~
-                      |    |   \ |  |   \     /   ~
-                      |____|_  / |__|    \___/    ~
-                             \/                   ~
-
-                            Version : 0.69        ~
+*riv.txt*           Riv         reStructuredText in Vim
+                     __________  .__  ____   ____                ~
+                     \______   \ |__| \   \ /   /                ~
+                      |       _/ |  |  \   Y   /                 ~
+                      |    |   \ |  |   \     /                  ~
+                      |____|_  / |__|    \___/                   ~
+                             \/                                  ~
 ======================================================================
-CONTENTS                                          *riv-contents*
 
-Intro                                             |riv-intro|
+                                               *:RivIntro*
+    Riv Intro   
 
-======================================================================
-INTRO                                             *riv-intro*
-Riv is a vim plugin for managing and writing reStructuredText documents. 
-Short for 'reStructuredText in Vim'.
+                                               *:RivInstruction*
+    Riv Instruction
 
-It is for people either want to manage documents in a wiki way, 
-or writing documents in a neat way.
+                                               *:RivQuickStart*
+    Riv QuickStart
 
-.. _reStructuredText: http://docutils.sourceforge.net/rst.html
+                                               *:RivPrimer*
+    RST Primer
 
-----------------------------------------------------------------------
-QUICKSTART                                        *riv-quickstart*
-
-use `:RivQuickStart`. or view riv_quickstart.rst
-
-----------------------------------------------------------------------
-DETAILS                                           *riv-details*
-
-See riv.rst (open it with |gf|)
-
-======================================================================
-CHANGELOG                                         *riv-changelog*
-
-See riv_log.rst
-Also riv_todo.rst
+                                               *:RivSpecification*
+    RST Specification
 
 ======================================================================
 vim:ft=help:tw=76

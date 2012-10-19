@@ -1,12 +1,289 @@
 "=============================================
 "    Name: test.vim
 "    File: test.vim
-" Summary: test 
+" Summary: tests 
 "  Author: Rykka G.F
-"  Update: 2012-09-19
+"  Update: 2012-10-13
 "=============================================
 let s:cpo_save = &cpo
 set cpo-=C
+
+" DocTest {{{1
+fun! s:is_cmd_line(line) "{{{
+    return a:line =~ '^\s*"\s>>>\s' 
+endfun "}}}
+fun! s:is_expc_line(line) "{{{
+    return a:line =~ '^\s*"\s*\S'
+endfun "}}}
+fun! s:is_end_line(line) "{{{
+    return a:line =~ '\s*"\s*$' || a:line !~'^\s*"' 
+endfun "}}}
+fun! s:get_plain_cmd(cmd_line) "{{{
+    return "    ". matchstr(a:cmd_line, '^\s*"\s>>>\s\zs.*')
+endfun "}}}
+fun! s:get_plain_expc(expc_line) "{{{
+    return "    ". matchstr(a:expc_line, '^\s*"\s\zs.*')
+endfun "}}}
+
+fun! riv#test#doctest(...) "{{{
+    " Test with the document.
+    " a:1 input file or current buffer, % for current buffer
+    " a:2 output file or message , % for messgae
+    " a:3 verbose level (0,1,2)
+    "
+    " exception will only needs it's ErrorNumber if it's vim exception
+    " exception will show when verbose level is 2
+    "
+    "
+    "
+    " Example " {{{3
+    "
+    " >>> echo 5+1
+    " 6
+    "
+    " will return:
+    " Try:
+    "   1+1
+    " Expected:
+    "   2
+    " ok
+    "
+    " ----------
+    "
+    " >>> echo 1+1*1.5
+    " 2.5
+    "
+    " will return:
+    " Try:
+    "   1+1
+    " Expected:
+    "   3
+    " Got: 
+    "   2
+    " failed
+    " 
+    " ----------
+    "
+    " >>> echom UNDEFINED_VARIABLE
+    " E121
+    "
+    " Try:
+    "   echo UNDEFINED_VARIABLE
+    " ok
+    " 
+    " ----------
+    "
+    " >>> echo 1+1=3
+    " 0
+    "
+    " Try:
+    "   echo 1+1=3
+    " Expected:
+    "   0
+    " Got:
+    "   2
+    "   E15
+    " Fail!
+    "
+    " ----------
+    "
+    " >>> let a = 3
+    " >>> let b = 4
+    " >>> echo a+b
+    " 7
+    " 
+    " Try:
+    " let a = 3
+    " let b = 4
+    " echo a+b
+    " OK!
+
+    " Init "{{{3
+    let input_file = a:0 ? a:1 : '%'
+    let lines = input_file != '%' ? readfile(a:1) : getline(1,'$')
+
+    let eof = len(lines)
+    let [b_bgn, b_end] = [0, 0]
+    let test_blocks = []
+    let test_results = []
+    let test_logs = []
+    let in_block = 0
+    let in_cmd = 0
+
+    " Get the test block "{{{3
+    " [[CMDS1, EXPCTS1],[CMDS2,EXPCTS2],...]
+    let e_cmds =  []
+    let e_expects = []
+    for i in range(eof)
+        let line = lines[i]
+        if !in_block
+            if s:is_cmd_line(line)
+                let in_block = 1
+                let in_cmd = 1
+                call add(e_cmds, line)
+            endif
+        elseif in_block
+            if s:is_cmd_line(line)
+                if in_cmd
+                    call add(e_cmds, line)
+                else
+                    " Not in cmd block. 
+                    " save and start a new test_block
+                    call add(test_blocks, [e_cmds, e_expects])
+                    let in_cmd = 1
+                    let e_cmds =  [line]
+                    let e_expects = []
+                endif
+            elseif s:is_end_line(line)
+                let in_cmd = 0
+                let in_block = 0
+                call add(test_blocks, [e_cmds, e_expects])
+                let e_cmds =  []
+                let e_expects = []
+            else
+                call add(e_expects, line)
+                let in_cmd = 0
+            endif
+        endif
+    endfor
+    
+    " Executing each Test Block and Redir the result "{{{3
+    for [cmds, expects] in test_blocks
+        let cmds = map(cmds, 's:get_plain_cmd(v:val)')
+        let expects = map(expects, 's:get_plain_expc(v:val)')
+        
+        let result_str = ""
+        let exception = ""
+        let throwpoint = ""
+        redir => result_str
+        for cmd in cmds
+            try
+                sil exec cmd
+            catch
+                " To handle Exception easier
+                let exception =  v:exception
+                let e_num = matchstr(exception, '^Vim\%((\a\+)\)\=:\zsE\d\+\ze:')
+                if e_num =~ 'E\d\+'
+                    " vim ErrorNumber
+                    sil echo e_num
+                else
+                    sil echo exception
+                endif
+                let throwpoint =  v:throwpoint
+            endtry
+        endfor
+        redir END
+        let results = map(split(result_str,'\n'),'"    ".v:val')
+        call add(test_results, [cmds, expects, results, [exception, throwpoint]])
+    endfor
+
+    " Validate and store to log "{{{3
+    for [cmds, expects, results;_] in test_results
+        if len(expects) == len(results)
+            let status = 1
+            for i in range(len(expects))
+                if expects[i] == results[i]
+                    continue
+                else
+                    let status = 0
+                    break
+                endif
+            endfor
+        else
+            let status = 0
+        endif
+        call add(test_logs, status)
+    endfor
+
+    " Show Test Log "{{{3
+    let verbose = a:0>2 ? a:3 : 0
+    let output = []
+    let failed = 0
+    let passed = 0
+    for i in range(len(test_logs))
+        if test_logs[i] == 1
+            if verbose == 2
+                call add(output, "Try:")
+                call extend(output, test_results[i][0])
+                call add(output, "Expected:")
+                call extend(output, test_results[i][1])
+                call add(output, "OK!")
+                if test_results[i][3][0] =~ '\S'
+                    call add(output, "Exception:")
+                    call extend(output, test_results[i][3])
+                endif
+                call add(output, " ")
+            elseif verbose == 1
+                call add(output, "Try:")
+                call extend(output, test_results[i][0])
+                call add(output, "OK!")
+                call add(output, " ")
+            endif
+            let passed += 1
+        else
+            if verbose == 2
+                call add(output, "Try:")
+                call extend(output, test_results[i][0])
+                call add(output, "Expected:")
+                call extend(output, test_results[i][1])
+                call add(output, "Got:")
+                call extend(output, test_results[i][2])
+                call add(output, "Fail!")
+                if test_results[i][3][0] =~ '\S'
+                    call add(output, "Exception:")
+                    call extend(output, test_results[i][3])
+                endif
+                call add(output, " ")
+            elseif verbose == 1
+                call add(output, "Try:")
+                call extend(output, test_results[i][0])
+                call add(output, "Got:")
+                call extend(output, test_results[i][2])
+                call add(output, "Fail!")
+                if test_results[i][3][0] =~ '\S'
+                    call add(output, "Exception:")
+                    call extend(output, test_results[i][3])
+                endif
+                call add(output, " ")
+            else
+                call add(output, "Try:")
+                call extend(output, test_results[i][0])
+                call add(output, "Fail!")
+                call add(output, " ")
+            end
+            let failed += 1
+        endif
+    endfor
+    call add(output, "Total: ".len(test_logs)." tests.")
+    call add(output, "Passed:".passed." tests.")
+    call add(output, "Failed:".failed." tests.")
+    
+    " Output to file or message "{{{3
+    if a:0 > 1 && a:2 != "%"
+        call riv#publish#auto_mkdir(a:2)
+        call writefile(output, a:2)
+    else
+        for out in output
+            if out =~ '^\(Try:\|Expected:\|Got:\|Exception:\|OK!\)$'
+                echohl Title
+                echo out
+                echohl Normal
+            elseif out =~ '^Fail!$'
+                echohl ErrorMsg
+                echo out
+                echohl Normal
+            else
+                echo out
+            endif
+        endfor
+    endif
+
+    return [test_results, test_logs]
+    "}}}3
+
+endfun "}}}
+
+" UnitTest {{{1
 
 function! s:time() "{{{
     if has("reltime")
@@ -65,6 +342,7 @@ fun! riv#test#assert(val1, val2) "{{{
         echo '  >' a:val2
     endif
 endfun "}}}
+
 fun! riv#test#func_args(func,arg_list) "{{{
     call s:test_func(a:func,a:arg_list)
 endfun "}}}
@@ -94,8 +372,8 @@ function! riv#test#compare(func1,func2,num,...) "{{{
     endif
     echom riv#test#timer("riv#test#stub0",[],a:num)
 endfunction "}}}
-function! riv#test#stub0()
-endfunction
+function! riv#test#stub0() "{{{
+endfunction "}}}
 
 fun! riv#test#echo(l) "{{{
     if type(a:l) == type({})
@@ -178,12 +456,9 @@ fun! riv#test#buf() "{{{
     echo "Total time: " (s:time()-o_t)
 endfun "}}}
 
-
 fun! riv#test#todo() "{{{
     call riv#todo#test()
 endfun "}}}
-
-
 
 fun! riv#test#insert_idt() "{{{
     " breakadd func riv#insert#indent
@@ -199,127 +474,11 @@ fun! riv#test#reload() "{{{
 endfun "}}}
 fun! riv#test#show_obj() "{{{
     echo b:riv_flist[line('.')]
-    if exists("b:riv_obj"g
+    if exists("b:riv_obj")
         echo b:riv_obj[line('.')]
     endif
 endfun "}}}
-fun! riv#test#repl_link() "{{{
-    let SID = riv#publish#SID()
-    let func = SID ."repl_file_link"
-    let arg_list  = [
-                \'rst.vim' ,
-                \'index.rst ' ,
-                \' test/rst ' ,
-                \'index ' ,
-                \'/home/index ' ,
-                \'index/ ',
-                \' index.rst2  ' ,
-                \'[index/]  ',
-                \'[index.rst2] ',
-                \' [index.py] ' ,
-                \'[index] ' ,
-                \'[/home/index] ' ,
-                \]
-    let g:_riv_debug=1
-    " let g:riv_file_link_style = 1
-    call riv#init()
-    call s:test_func(func, arg_list)
-    " let g:riv_file_link_style = 2
-    call riv#init()
-    call s:test_func(func, arg_list)
-endfun "}}}
-fun! riv#test#list_item() "{{{
-    let func = "riv#list#level"
-    let arg_list  = [
-                \ "   #    list -1 " ,
-                \ "   *    list 00 " ,
-                \ "   +    list 01 " ,
-                \ "   -    list 02 " ,
-                \ "   1.   list 03 " ,
-                \ "   A.   list 04 " ,
-                \ "   a.   list 05 " ,
-                \ "   II.  list 06 " ,
-                \ "   ii.  list 07 " ,
-                \ "   1)   list 08 " ,
-                \ "   A)   list 09 " ,
-                \ "   a)   list 10 " ,
-                \ "   II)  list 11 " ,
-                \ "   ii)  list 12 " ,
-                \ "   (1)  list 13 " ,
-                \ "   (A)  list 14 " ,
-                \ "   (a)  list 15 " ,
-                \ "   (II) list 16 " ,
-                \ "   (ii) list 17 " ,
-                \["   I)   list 11 " , 0],
-                \["   I)   list 09 ", 1],
-                \]
-    cal s:test_func(func,arg_list)
-endfun "}}}
-fun! riv#test#list_str() "{{{
-    let act = -1
-    let prev = 0
-    let idt = '     '
-    echo riv#list#act_line("   # 233     ,act ,idt ,prev ).'|'
-    echo riv#list#act_line("   * 233     ,act ,idt ,prev ).'|'
-    echo riv#list#act_line("   + 233     ,act ,idt ,prev ).'|'
-    echo riv#list#act_line("   - 233     ,act ,idt ,prev ).'|'
-    echo riv#list#act_line("   1. 233    ,act ,idt ,prev ).'|'
-    echo riv#list#act_line("   1) 233    ,act ,idt ,prev ).'|'
-    echo riv#list#act_line("   (1) 233   ,act ,idt ,prev ).'|'
-    echo riv#list#act_line("   A. 233    ,act ,idt ,prev ).'|'
-    echo riv#list#act_line("   A) 233    ,act ,idt ,prev ).'|'
-    echo riv#list#act_line("   (A) 233   ,act ,idt ,prev ).'|'
-    echo riv#list#act_line("   a. 233    ,act ,idt ,prev ).'|'
-    echo riv#list#act_line("   a) 233    ,act ,idt ,prev ).'|'
-    echo riv#list#act_line("   (a) 233   ,act ,idt ,prev ).'|'
-    echo riv#list#act_line("   II. 233   ,act ,idt ,prev ).'|'
-    echo riv#list#act_line("   II) 233   ,act ,idt ,prev ).'|'
-    echo riv#list#act_line("   (II) 233  ,act ,idt ,prev ).'|'
-    echo riv#list#act_line("   ii. 233   ,act ,idt ,prev ).'|'
-    echo riv#list#act_line("   ii) 233   ,act ,idt ,prev ).'|'
-    echo riv#list#act_line("   (ii) 233  ,act ,idt ,prev ).'|'
-    echo riv#list#act_line("   (I) 233   ,act ,idt ,prev ).'|'
-    echo riv#list#act_line("   (I) 233   ,act ,idt ,prev ).'|'
-endfun "}}}
 
-fun! riv#test#link_expand() "{{{
-    let func = riv#create#SID()."expand_to_link"
-    let func = riv#create#SID()."expand_link"
-    let arg_list  = [
-                \ "aaaa", "aaaa.rst", "aaaa.py", "[aaaa.rst]", "[aaaa]",
-                \ "[aaaa.py]", "[/efe/aaaa.py]", "aaaa/aaa/aa.rst",
-                \ "/aaaa/aaa/aa.rst", "~/aaaa/aaa/aa.rst", "../aaaa/aaa/aa.rst",
-                \]
-    " let g:riv_file_link_style = 1
-    call riv#init()
-    call s:test_func(func, arg_list)
-    " let g:riv_file_link_style = 2
-    call riv#init()
-    call s:test_func(func, arg_list)
-endfun "}}}
-fun! s:test_list_parse() "{{{
-    let func1 = riv#fold#SID()."parse_list"
-    let func = riv#fold#SID()."dic2line"
-    echo call(func1,[])
-    let lines = call(func,['root'])
-    for line in lines
-        echo line
-    endfor
-endfun "}}}
-fun! s:test_path() "{{{
-    let func = "riv#path#rel_to"
-    let arg_list  = [
-                \['/a/c','/a/c/b'],
-                \["/a/c","/a/c/b"],
-                \['\a\c','\a\c\f'],
-                \["\a\c","\a\c\f"],
-                \]
-    call s:test_func(func, arg_list)
-    
-endfun "}}}
-fun! riv#test#test() "{{{
-
-endfun "}}}
 fun! s:SID() "{{{
     return matchstr(expand('<sfile>'), '<SNR>\zs\d\+\ze_SID$')
 endfun "}}}
@@ -331,12 +490,10 @@ function! riv#test#stub1() "{{{
 endfunction "}}}
 function! riv#test#stub2() "{{{
 endfunction "}}}
-" Testing 
-if expand('<sfile>:p') == expand('%:p') "{{{
 
-    let func1 = "riv#test#stub1"
-    let func2 = "riv#test#stub2"
-    call riv#test#compare(func1,func2,1000)
+" Testing "{{{1
+if expand('<sfile>:p') == expand('%:p') "{{{
+    call riv#test#doctest('%','%',2)
 endif "}}}
 
 let &cpo = s:cpo_save

@@ -22,7 +22,7 @@ fun! riv#link#get_last_foot() "{{{
 endfun "}}}
 fun! riv#link#finder(dir) "{{{
     let flag = a:dir=="b" ? 'Wnb' : 'Wn'
-    let [srow,scol] = searchpos(g:_riv_p.link_all,flag,0,100)
+    let [srow,scol] = searchpos(riv#ptn#link_all(),flag,0,100)
     if srow[0] != 0
         call setpos("'`",getpos('.'))
         call cursor(srow, scol)
@@ -31,6 +31,7 @@ endfun "}}}
 fun! s:normal_ptn(text) "{{{
     let text = substitute(a:text ,'\v(^__=|_=_$)','','g')
     let text = substitute(text ,'\v(^`|`$)','','g')
+    let text = substitute(text ,':$','','g')
     let text = substitute(text ,'\v(^\[|\]$)','','g')
     let text = substitute(riv#ptn#escape(text),'\s\+','\\s+','g')
     return text
@@ -40,7 +41,8 @@ fun! s:target_ptn(text) "{{{
     return '\v\c(_`\zs'. a:text .'`|\_^\.\.\s\zs\['.a:text.'\]|\_^\.\.\s\zs_'.a:text.':)'
 endfun "}}}
 fun! s:reference_ptn(text) "{{{
-    return '\v\c(`'. a:text .'`_|\['.a:text.'\]_|'.a:text.'_)\ze'
+    return '\v\c(`'. a:text .'`_|\['.a:text.'\]_|'.a:text.'_)'
+        \. '%($|\s|[''")\]}>/:.,;!?\\-])'
 endfun "}}}
 
 fun! s:find_tar(text) "{{{
@@ -94,19 +96,18 @@ fun! riv#link#open() "{{{
 
     let [row,col] = getpos('.')[1:2]
     let line = getline(row)
-
-    let idx = s:get_P_or_W_idx(line,col)
+    
+    let idx = s:get_link_idx(line,col)
 
     if idx == -1
         return 
     endif
-
-    let mo = riv#ptn#match_object(line, g:_riv_p.link_all, idx)
+    
+    let mo = riv#ptn#match_object(line, riv#ptn#link_all(), idx)
 
     if empty(mo) || mo.start+1 > col || mo.end < col
         return
     endif
-
     if !empty(mo.groups[1])
         " at it's target , find it's referrence
         let [sr,sc] = s:find_ref(mo.str)
@@ -161,7 +162,7 @@ fun! riv#link#open() "{{{
             let file = dir . mo.str
             if riv#path#is_directory(file) &&
                 \ riv#path#is_rel_to_root(file)
-                let file = file . 'index.rst'
+                let file = file . riv#path#idx_file()
             endif
         else
             let file = expand(mo.str)
@@ -172,29 +173,35 @@ fun! riv#link#open() "{{{
     endif
 endfun "}}}
 
-
 fun! riv#link#path(str) "{{{
     " return the local file path contained in the string.
-    " style 1 
-    " [[xxx]] => xxx.rst
-    " [[xxx.vim]] => xxx.vim
-    " [[xxx/]] => xxx/index.rst
-    " [[/xxx]]  => DOC_ROOT/xxx.rst
-    " [[/xxx/]]  => DOC_ROOT/xxx/index.rst
-    " [[~/xxx]] => ~/xxx
-    " style 2
-    " :doc:`xxx` => xxx.rst
-    " :doc:`xxx/` => xxx/index.rst
-    " :file:`xxx` => xxx
-    " :file:`/xxx` => /xxx
     
-    if g:riv_file_link_style == 1
-        let f = matchstr(a:str, '^\[\[\zs.*\ze\]\]$')
-        let t = f =~ '^([~]|[a-zA-Z]:)' ? 'file' : 'doc'
-    elseif g:riv_file_link_style == 2 
-        let f = matchstr(a:str, '^:\%(doc\|file\):`\zs.*\ze`$')
-        let t = matchstr(a:str,'^:\zs\%(doc\|file\)\ze:')
-    endif
+    ">>>> let g:_temp = riv#path#file_link_style() 
+    ">>>> let riv#path#file_link_style() = 1
+    ">>>> echo riv#link#path('[[xxx]]')
+    ">xxx.rst
+    ">>>> echo riv#link#path('[[xxx.vim]]')
+    ">xxx.vim
+    ">>>> echo riv#link#path('[[xxx/]]')
+    ">xxx/index.rst
+    ">>>> echo riv#link#path('[[/xxx]]')
+    ">ROOT/xxx.rst
+    ">>>> echo riv#link#path('[[~/xxx]]')
+    ">~/xxx
+    ">>>> let riv#path#file_link_style() = 2
+    ">>>> echo riv#link#path(':doc:`xxx`')
+    ">xxx.rst
+    ">>>> echo riv#link#path(':doc:`xxx.vim`')
+    ">xxx.vim
+    ">>>> echo riv#link#path(':doc:`xxx/`')
+    ">xxx/index.vim
+    ">>>> echo riv#link#path(':doc:`/xxx`')
+    ">ROOT/xxx.rst
+    ">>>> echo riv#link#path(':doc:`~/xxx`')
+    ">~/xxx
+    ">>>> let riv#path#file_link_style() = g:_temp
+
+    let [f,t] = riv#ptn#get_file(a:str)
     if riv#path#is_relative(f)
         let file = expand('%:p:h').'/' . f
     else
@@ -207,21 +214,20 @@ fun! riv#link#path(str) "{{{
             return file
         endif
     endif
-
     if riv#path#is_directory(file) && t == 'doc'
-        let file = file . 'index.rst'
-    elseif fnamemodify(file, ':e') =~ '^$\|^rst$' && t == 'doc'
-        let file = file . '.rst'
+        let file = file .riv#path#idx_file() 
+    elseif fnamemodify(file, ':e') =~ '^$' && t == 'doc'
+        let file = file . riv#path#ext() 
     endif
     
     return file
 endfun "}}}
 
-fun! s:get_P_or_W_idx(line, col) "{{{
-    let idx = riv#ptn#get_phase_idx(a:line, a:col)
-    if idx == -1
-        let idx = riv#ptn#get_WORD_idx(a:line, a:col)
-    endif
+fun! s:get_link_idx(line, col) "{{{
+    let idx = riv#ptn#get_tar_idx(a:line, a:col)
+    let idx = idx==-1 ? riv#ptn#get_role_idx(a:line, a:col) : idx
+    let idx = idx==-1 ? riv#ptn#get_phase_idx(a:line, a:col) : idx
+    let idx = idx==-1 ? riv#ptn#get_WORD_idx(a:line, a:col) : idx
     return idx
 endfun "}}}
 
@@ -238,10 +244,10 @@ fun! riv#link#hi_hover() "{{{
     let [s:hl_row, s:hl_bgn,s:hl_end] = [row, 0 , 0]
 
     let line = getline(row)
-    let idx = s:get_P_or_W_idx(line,col)
+    let idx = s:get_link_idx(line,col)
     
     if idx != -1
-        let obj = riv#ptn#match_object(line, g:_riv_p.link_all, idx)
+        let obj = riv#ptn#match_object(line, riv#ptn#link_all(), idx)
         if !empty(obj) && obj.start < col
             let bgn = obj.start + 1
             let end = obj.end
@@ -278,5 +284,8 @@ fun! riv#link#hi_hover() "{{{
     2match none
 endfun "}}}
 
+if expand('<sfile>:p') == expand('%:p') "{{{
+    call riv#test#doctest('%','%',2)
+endif "}}}
 let &cpo = s:cpo_save
 unlet s:cpo_save

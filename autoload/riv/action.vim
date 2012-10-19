@@ -9,15 +9,22 @@ let s:cpo_save = &cpo
 set cpo-=C
 
 let s:p = g:_riv_p
-fun! riv#action#quick_start() "{{{
-    let quick_start = g:_riv_c.doc_pat . 'riv_quickstart.rst'
-    let lines = readfile(quick_start)
-    noa keepa bot new QuickStart
+fun! riv#action#tutor(name) "{{{
+    let file = g:_riv_c.doc_pat . a:name . '.rst'
+    let lines = readfile(file)
+    exe 'noa keepa bot new ~/Documents/'.a:name.'.rst'
 	setl noswf nolist nospell nocuc wfh
-	setl bt=nofile bh=unload
+	" setl bt=nofile bh=unload
     set ft=rst
+    0,$del _
     call setline(1,lines)
+    call riv#create#auto_mkdir()
     update
+endfun "}}}
+fun! riv#action#open(name) "{{{
+    let file = g:_riv_c.doc_pat . 'riv_'.a:name.'.rst'
+    exe 'noa keepa bot sp' file
+    setl ro noma ft=rst
 endfun "}}}
 
 fun! riv#action#db_click(mouse) "{{{
@@ -67,47 +74,35 @@ endfun "}}}
 
 fun! riv#action#ins_enter() "{{{
     if getline('.') =~ s:p.table
-        let [row,col] = getpos('.')[1:2]
-        return s:table_newline_cmd(row,col,'cont')
+        call riv#table#newline('cont')
     else
-        return  "\<C-G>u\<Enter>"
+        " exe "norm! \<Esc>gi\<CR>\<Right>"
+        " exe "norm! \<Esc>a\<C-G>u\<C-M>"
+        call feedkeys("\<Esc>gi\<C-G>u\<C-M>",'n')
+        " norm! o
     endif
 endfun "}}}
 fun! riv#action#ins_c_enter() "{{{
-    let line = getline('.')
     if getline('.') =~ s:p.table
-        let [row,col] = getpos('.')[1:2]
-        return s:table_newline_cmd(row,col,'sepr')
+        call riv#table#newline('sepr')
+    else
+        call riv#list#new(0)
     endif
-    let cmd = "\<C-G>u"
-    let cmd .= line=~ '\S' ? "\<CR>" : ''
-    let cmd .= "\<C-O>:call riv#list#new(0)\<CR>\<Esc>A"
-    return cmd
 endfun "}}}
 fun! riv#action#ins_s_enter() "{{{
-    let line = getline('.')
     if getline('.') =~ s:p.table
-        " let [row,col] = getpos('.')[1:2]
-        " return s:table_newline_cmd(row,col,'cont')
-        return "\<C-O>:call cursor(riv#table#nextline())\<CR>"
+        call cursor(riv#table#nextline())
+    else
+        call riv#list#new(1)
     endif
-    let cmd = "\<C-G>u"
-    let cmd .= line=~ '\S' ? "\<CR>\<CR>" : ''
-    let cmd .= "\<C-O>:call riv#list#new(1)\<CR>\<Esc>A"
-    return cmd
 endfun "}}}
 fun! riv#action#ins_m_enter() "{{{
-    let line = getline('.')
     if getline('.') =~ s:p.table
-        let [row,col] = getpos('.')[1:2]
-        return s:table_newline_cmd(row,col,'head')
+        call riv#table#newline('head')
+    else
+        call riv#list#new(-1)
     endif
-    let cmd = "\<C-G>u"
-    let cmd .= line=~ '\S' ? "\<CR>\<CR>" : ''
-    let cmd .= "\<C-O>:call riv#list#new(-1)\<CR>\<Esc>A"
-    return cmd
 endfun "}}}
-
 
 fun! riv#action#ins_backspace() "{{{
     let [row,col] = getpos('.')[1:2]
@@ -119,6 +114,20 @@ fun! riv#action#ins_backspace() "{{{
     endif
     return  !empty(cmd) ? cmd : "\<BS>"
 endfun "}}}
+fun! riv#action#ins_backspace2() "{{{
+    " Test Test
+    " The
+    let [row,col] = getpos('.')[1:2]
+    let line = getline('.')
+    if s:is_in_bgn_blank(col, line)
+        let cmd = riv#insert#shiftleft(row,col)
+    else
+        let cmd = ""
+    endif
+    let cmd =  !empty(cmd) ? cmd : "\<BS>"
+    exe "norm! i".cmd
+endfun "}}}
+
 
 fun! s:is_in_list_item(col,line) "{{{
     " it's the col before last space in list-item
@@ -157,6 +166,8 @@ fun! riv#action#ins_tab() "{{{
     else
         let cmd = ''
     endif
+
+    " We will execute user cmd only when there were no cmd context.
     if !empty(cmd)
         return cmd
     else
@@ -198,3 +209,4 @@ endfun "}}}
 
 let &cpo = s:cpo_save
 unlet s:cpo_save
+" vim:fdm=marker:

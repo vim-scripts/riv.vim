@@ -15,7 +15,7 @@ fun! s:escape(txt) "{{{
     return escape(a:txt, '~.*\[]^$')
 endfun "}}}
 fun! s:gen_embed_link(title, path) "{{{
-    if g:riv_file_link_style == 2
+    if riv#path#file_link_style() == 2
         return  '`['.a:title.'] <'.a:path.'>`_'
     else
         return  '`'.a:title.' <'.a:path.'>`_'
@@ -51,7 +51,7 @@ fun! riv#publish#path(str) "{{{
         let file = file . 'index.html'
     elseif fnamemodify(file, ':e') == '' && t == 'doc'
         let file = file . '.html'
-    elseif fnamemodify(file, ':e') == 'rst' && t == 'doc'
+    elseif fnamemodify(file, ':e') == riv#path#p_ext() && t == 'doc'
         let file = fnamemodify(file, ':r') . '.html'
     endif
     
@@ -63,16 +63,16 @@ fun! s:repl_file_link(line) "{{{
     " [[index]]       => `index <index.html>`_
     " [[index.rst]]   => `index <index.html>`_
     " [[index.vim]]   => `index.vim <index.vim>`_
-    " [[index/]]      => `index/ <index/index.rst>`_
-    " [[/xxx/a.rst]]  => `/xxx/a.rst  <DOC_ROOT/xxx/a.rst>`_    ?
+    " [[index/]]      => `index/ <index/index.html>`_
+    " [[/xxx/a.rst]]  => `/xxx/a.rst  <DOC_ROOT/xxx/a.rst>`_
     
     let line = a:line
     
     " we will get the idx and find the pattern from origin line.
     let o_line = line
     let pre_idx = 0           " for the inline markup column check
-    let idx = matchend(o_line, g:_riv_p.link_file)
-    let str = matchstr(o_line, g:_riv_p.link_file)
+    let idx = matchend(o_line, riv#ptn#link_file())
+    let str = matchstr(o_line, riv#ptn#link_file())
     while idx != -1
         let obj = riv#ptn#get_inline_markup_obj(o_line, idx+1, pre_idx)
         " it's not in a inline markup
@@ -83,8 +83,8 @@ fun! s:repl_file_link(line) "{{{
             let line = substitute(line, s:escape_file_ptn(title), 
                             \s:gen_embed_link(title, path), 'g')
         endif
-        let idx = matchend(o_line, g:_riv_p.link_file,idx)
-        let str = matchstr(o_line, g:_riv_p.link_file,idx)
+        let idx = matchend(o_line, riv#ptn#link_file(),idx)
+        let str = matchstr(o_line, riv#ptn#link_file(),idx)
         let pre_idx = idx
     endwhile
     return line
@@ -171,8 +171,8 @@ fun! riv#publish#2(ft, file, path, browse) "{{{
     let file = expand(a:file)
     let out_path = a:path . riv#path#rel_to_root(file)
     let file_path = riv#path#ext_to(out_path, a:ft)
-    call s:auto_mkdir(out_path)
-    if g:riv_file_link_style == 1
+    call riv#publish#auto_mkdir(out_path)
+    if riv#path#file_link_style() == 1
         call s:convert(a:ft, s:create_tmp(file), file_path, s:rst_args(a:ft))
     else
         call s:convert(a:ft, file, file_path, s:rst_args(a:ft))
@@ -198,13 +198,15 @@ endfun "}}}
 
 fun! riv#publish#copy2proj(file,html_path) abort "{{{
     let out_path = a:html_path . riv#path#rel_to_root(expand(a:file))
-    call s:auto_mkdir(out_path)
+    call riv#publish#auto_mkdir(out_path)
     call s:sys( 'cp -f '. a:file. ' '.  fnamemodify(out_path, ':h'))
 endfun "}}}
+fun! s:get_proj_file_lists()
+    return filter(split(glob(riv#path#root().'**/*'.riv#path#ext()),'\n'), 'v:val !~ '''.riv#path#p_build().'''')
+endfun
 fun! riv#publish#proj2(ft) abort "{{{
     let ft_path = riv#path#build_ft(a:ft)
-    let root = riv#path#root()
-    let files = filter(split(glob(root.'**/*.rst'),'\n'), 'v:val !~ ''_build''')
+    let files = s:get_proj_file_lists()
     for i in range(len(files))
         call riv#publish#2(a:ft,files[i], ft_path, 0)
         redraw
@@ -216,7 +218,7 @@ fun! riv#publish#proj2(ft) abort "{{{
     let copy_ext = '{'.join(g:_riv_t.file_ext_lst,',').'}'
     if a:ft == "html" 
         \ && input("Copy all file of extension: ".copy_ext."\n(Y/n):")!~?'n'
-        let files = filter(split(glob(root.'**/*'.copy_ext)), 'v:val !~ ''_build''')
+        let files = filter(split(glob(riv#path#root().'**/*'.copy_ext)), 'v:val !~ '''.riv#path#p_build().'''')
         for file in files
             call riv#publish#copy2proj(file, ft_path)
         endfor
@@ -227,7 +229,7 @@ fun! s:rst_args(ft) "{{{
     return exists("g:riv_rst2".a:ft."_args") ? !empty(g:riv_rst2{a:ft}_args)
                 \ ? g:riv_rst2{a:ft}_args : '' : ''
 endfun "}}}
-fun! s:auto_mkdir(path) "{{{
+fun! riv#publish#auto_mkdir(path) "{{{
     if !isdirectory(fnamemodify(a:path,':h')) 
         call mkdir(fnamemodify(a:path,':h'),'p')
     endif
@@ -237,11 +239,8 @@ fun! s:sys(arg) abort "{{{
     " XXX: error in windows tmp files
     return system(a:arg)
 endfun "}}}
-fun! s:SID() "{{{
-    return matchstr(expand('<sfile>'), '<SNR>\zs\d\+\ze_SID$')
-endfun "}}}
-fun! riv#publish#SID() "{{{
-    return '<SNR>'.s:SID().'_'
-endfun "}}}
+if expand('<sfile>:p') == expand('%:p') "{{{
+    call riv#test#doctest('%','%',2)
+endif "}}}
 let &cpo = s:cpo_save
 unlet s:cpo_save
