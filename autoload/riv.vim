@@ -3,7 +3,7 @@
 "    File: riv.vim
 " Summary: Riv autoload main
 "  Author: Rykka G.F
-"  Update: 2012-10-05
+"  Update: 2014-08-06
 "=============================================
 let s:cpo_save = &cpo
 set cpo-=C
@@ -13,23 +13,31 @@ let g:riv_version = '0.74'
 let g:riv_p_id = 0
 
 " Miscs "{{{1
-fun! s:error(msg) "{{{
-    echohl WarningMsg
-    redraw
-    echo a:msg
+fun! riv#echo(msg) "{{{
+    echohl Type
+    echo '[RIV]'
     echohl Normal
+    echon a:msg
 endfun "}}}
 fun! riv#error(msg) "{{{
     echohl ErrorMsg
-    echo '[Error:]'
-    echon a:msg
+    echo '[RIV]'
     echohl Normal
+    echon a:msg
 endfun "}}}
 fun! riv#warning(msg) "{{{
     echohl WarningMsg
-    echo '[Warning]'
-    echon a:msg
+    echo '[RIV]'
     echohl Normal
+    echon a:msg
+endfun "}}}
+fun! riv#debug(msg) "{{{
+    if g:riv_debug
+        echohl KeyWord
+        echom "[RIV]"
+        echohl Normal
+        echon a:msg
+    endif
 endfun "}}}
 fun! riv#breakundo() "{{{
     let &ul=&ul
@@ -49,7 +57,7 @@ fun! riv#load_opt(opt_dic) "{{{
         if !exists('g:riv_'.opt)
             let g:riv_{opt} = var
         elseif type(g:riv_{opt}) != type(var)
-            call s:error("RIV: Wrong type for Option:'g:riv_".opt."'! Use default.")
+            call riv#error("RIV: Wrong type for Option:'g:riv_".opt."'! Use default.")
             unlet! g:riv_{opt}
             let g:riv_{opt} = var
         endif
@@ -76,6 +84,7 @@ endfun "}}}
 let s:default = {'version': g:riv_version}
 let s:default.options = {
     \'default'            : s:default,
+    \'debug'              : 0,
     \'global_leader'      : '<C-E>',
     \'file_link_ext'      : 'vim,cpp,c,py,rb,lua,pl',
     \'file_ext_link_hl'   : 1,
@@ -90,6 +99,7 @@ let s:default.options = {
     \'todo_default_group' : 0,
     \'todo_datestamp'     : 1,
     \'todo_keywords'      : "TODO,DONE;FIXME,FIXED;START,PROCESS,STOP",
+    \'disable_folding'    : 0,
     \'fold_blank'         : 2,
     \'fold_level'         : 3,
     \'fold_section_mark'  : ".",
@@ -111,13 +121,18 @@ let s:default.options = {
     \'auto_format_table'  : 1,
     \'fold_info_pos'      : 'right',
     \'temp_path'          : 1,
+    \'disable_indent'     : 0,
     \'i_tab_pum_next'     : 1,
     \'i_tab_user_cmd'     : "",
     \'i_stab_user_cmd'    : "",
     \'ignored_imaps'      : "",
+    \'ignored_nmaps'      : "",
+    \'ignored_vmaps'      : "",
+    \'ignored_maps'       : "",
     \'month_names'        : 'January,February,March,April,May,June,July,'
                           \.'August,September,October,November,December',
     \'python_rst_hl'      : 0,
+    \'default_path'         : '~/Documents/Riv',
     \'build_path'         : '_build',
     \'scratch_path'       : 'Scratch',
     \'source_suffix'      : '.rst',
@@ -172,7 +187,7 @@ fun! riv#load_conf() "{{{1
     let s:e = g:_riv_e
 
     let s:c.riv_path = s:autoload_path . '/riv/'
-    let s:c.doc_pat  = fnamemodify(s:autoload_path ,':h').'/doc/'
+    let s:c.doc_path  = fnamemodify(s:autoload_path ,':h').'/doc/'
 
     " Python:
     if has("python") "{{{
@@ -200,7 +215,7 @@ fun! riv#load_conf() "{{{1
     
     " Project: "{{{
     let s:c.p_basic = {
-        \'path'               : '~/Documents/Riv' ,
+        \'path'               : g:riv_default_path ,
         \'build_path'         : g:riv_build_path ,
         \'scratch_path'       : g:riv_scratch_path ,
         \'source_suffix'      : g:riv_source_suffix ,
@@ -260,7 +275,7 @@ fun! riv#load_conf() "{{{1
     let s:t.time_fmt  = "%Y-%m-%d"
     let s:t.sect_punc = '!"#$%&''()*+,-./:;<=>?@[\]^_`{|}~'
     let s:t.list_lvs  =  ["*","+","-"]
-    let s:t.highlight_code = riv#ptn#norm_list(split(g:riv_highlight_code,','))
+    let s:t.highlight_code = split(g:riv_highlight_code,',')
     let s:t.month_names = split(g:riv_month_names,',')
     
     let s:c.sect_lvs = split(g:riv_section_levels,'\zs')
@@ -284,9 +299,14 @@ fun! riv#load_conf() "{{{1
         let s:c.i_stab_user_cmd = g:riv_i_stab_user_cmd
     endif
     
-    for key in split(g:riv_ignored_imaps,',')
-        call remove(g:riv_default.buf_imaps, key)
-    endfor
+    " This is Invalid Now!!
+    " for key in split(g:riv_ignored_imaps,',')
+    "     call (g:riv_default.buf_imaps, key)
+    " endfor
+    let g:riv_default.ignored_imaps = split(g:riv_ignored_imaps,',')
+    let g:riv_default.ignored_nmaps = split(g:riv_ignored_nmaps,',')
+    let g:riv_default.ignored_vmaps = split(g:riv_ignored_vmaps,',')
+    let g:riv_default.ignored_maps = split(g:riv_ignored_maps,',')
 
     if empty(g:riv_ft_browser) "{{{
         if has('win32') || has('win64')
@@ -335,12 +355,12 @@ endfun "}}}
 
 fun! riv#buf_load_aug() "{{{
     aug RIV_BUFFER "{{{
-        if exists("g:riv_auto_format_table") "{{{
+        if exists("g:riv_auto_format_table") && g:riv_auto_format_table == 1 "{{{
             au! InsertLeave <buffer> call riv#table#format_pos()
         endif "}}}
-        if exists("g:riv_link_cursor_hl") "{{{
+        if exists("g:riv_link_cursor_hl")  && g:riv_link_cursor_hl == 1 "{{{
             " cursor_link_highlight
-            au! CursorMoved,CursorMovedI <buffer>  call riv#link#hi_hover()
+            au! CursorMoved <buffer>  call riv#link#hi_hover()
             " clear the highlight before bufwin/winleave
             au! WinLeave,BufWinLeave     <buffer>  2match none
         endif "}}}
@@ -361,8 +381,11 @@ fun! riv#buf_load_syn() "{{{
 endfun "}}}
 fun! riv#buf_init() "{{{
     " for the rst buffer
-    setl foldmethod=expr foldexpr=riv#fold#expr(v:lnum) 
-    setl foldtext=riv#fold#text()
+    if g:riv_disable_folding == 0
+        setl foldmethod=expr foldexpr=riv#fold#expr(v:lnum) 
+        setl foldtext=riv#fold#text()
+    endif
+
     setl comments=fb:.. commentstring=..\ %s 
     setl formatoptions+=tcroql expandtab
     let b:undo_ftplugin = "setl fdm< fde< fdt< com< cms< et< fo<"

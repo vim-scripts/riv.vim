@@ -3,7 +3,7 @@
 "    File: todo.vim
 " Summary: todo items
 "  Author: Rykka G.Forest
-"  Update: 2012-07-07
+"  Update: 2013-05-26
 "=============================================
 let s:cpo_save = &cpo
 set cpo-=C
@@ -409,22 +409,30 @@ endfun "}}}
 fun! riv#todo#update() "{{{
     " update the todo cache with current file
     let file = expand('%:p')
+    
+    " don't cache file in build path
     if riv#path#is_rel_to(riv#path#build_path(), file)
         return
     endif
+
     try
         let f = riv#path#rel_to_root(file)
         let lines = s:file2lines(getline(1,line('$')), f)
-        let cache = riv#path#root() .'.todo_cache'
+        let dir = riv#path#root()
+        let cache = dir .'.todo_cache'
+        if !isdirectory(dir)
+            call mkdir(dir,'p')
+        endif
+        if filereadable(cache)
+            let c_lines = filter(readfile(cache), ' v:val!~escape(f,''\'')')
+        else
+            let c_lines = []
+        endif
+        call writefile(c_lines+lines , cache)
     catch 
+        call riv#debug("Update todo cache failed:". v:exception)
         return -1
     endtry
-    if filereadable(cache)
-        let c_lines = filter(readfile(cache), ' v:val!~escape(f,''\'')')
-    else
-        let c_lines = []
-    endif
-    call writefile(c_lines+lines , cache)
 endfun "}}}
 
 fun! riv#todo#enter() "{{{

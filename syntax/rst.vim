@@ -1,7 +1,7 @@
 " Vim syntax file
 " Language:         reStructuredText documentation format
 " Maintainer:       Nikolai Weibull <now@bitwi.se>
-" Latest Revision:  2012-10-09
+" Latest Revision:  2014-07-24
 
 if exists("b:current_syntax")
   finish
@@ -13,7 +13,9 @@ syn match   rstTodo         '\v(<|:)%(FIXME|TODO|XXX|NOTE)%(:|\_s@=)' contained
 
 syn case ignore
 
-syn match   rstSections /\v%(\S\s*\n)@<!\_^\s*\S.*\n([=`:.'"~^_*+#-])\1*\s*$/
+" NOTE: When the above line length longer than '::' , then it's literal_block
+" but we can not compare it's length, so we ignore '::' and '..'
+syn match   rstSections /\v%(\S\s*\n)@<!\_^\s*\S.*\n%(([=`'"~^_*+#-])\1*|([:.])\2{2,})\s*$/
 syn match   rstSections /\v%(\S\s*\n)@<!\_^(([=`:.'"~^_*+#-])\2*\s*)\n\s*\S.*\n\1$/
 syn match   rstTransition  /\v%(\_^\s*\n)@<=\_^[=`:.'"~^_*+#-]{4,}\s*(\n\s*\_$)\@=/
 
@@ -53,26 +55,44 @@ syn match   rstSimpleTableLines     contained display
 syn cluster rstDirectives           contains=rstFootnote,rstCitation,
       \ rstHyperlinkTarget,rstExDirective
 
-syn match   rstExplicitMarkup       '^\.\.\_s'
-      \ nextgroup=@rstDirectives,rstComment,rstSubstitutionDefinition
+
+
+" NOTE: Fix #66 https://github.com/Rykka/riv.vim/pull/66
+" Here we match all the whitespace that's more than 'z1' and ignore it. (skip=#^\(\(\z1\s\+\)\@>\S\)#')
+" See 'syn-skip', 'syn-keepend' and '\@>'
+"
+execute 'syn region rstExplicitMarkup keepend'
+        \ ' start=#^\z(\s*\)\.\.\s#'
+        \ ' skip=#^\(\(\z1\s\+\)\@>\S\|\s*$\)#'
+        \ ' end=#^\ze\s*\S#'
+        \ ' contains=rstExplicitMarkupDot,@rstDirectives,rstSubstitutionDefinition,rstComment'
+
+syn match   rstExplicitMarkupDot       '^\s*\.\.\_s' contained
+      \ nextgroup=@rstDirectives,rstSubstitutionDefinition,rstComment
 
 let s:ReferenceName = '[[:alnum:]]\+\%([_.-][[:alnum:]]\+\)*'
 
-
-execute 'syn region rstComment contained' .
-      \ ' start=/.*/'
-      \ ' skip=+^$+' 
-      \ ' end=/^\s\@!/ contains=@rstCommentGroup'
+" NOTE: #66 If we use '.*' all explicit markup will became comment.
+" So use '[^.]' here. us \_s to skip the exdirective match
+" See '/collection' 
+" Also use '\@='to match \_s with zero width
+execute 'syn region rstComment contained'
+        \ ' start=#[^.|[_[:blank:]]\+[^:[:blank:]]\_s\@=#'
+        \ ' skip=+^$+' .
+        \ ' end=+^\s\@!+'
+        \ ' contains=@rstCommentGroup'
 
 execute 'syn region rstFootnote contained matchgroup=rstDirective' .
       \ ' start=+\[\%(\d\+\|#\%(' . s:ReferenceName . '\)\=\|\*\)\]\_s+' .
       \ ' skip=+^$+' .
-      \ ' end=+^\s\@!+ contains=@rstCruft,@NoSpell'
+      \ ' end=+^\s\@!+'
+      \ ' contains=@rstCruft,@NoSpell'
 
 execute 'syn region rstCitation contained matchgroup=rstDirective' .
       \ ' start=+\[' . s:ReferenceName . '\]\_s+' .
       \ ' skip=+^$+' .
-      \ ' end=+^\s\@!+ contains=@s:ReferenceNamerstCruft,@NoSpell'
+      \ ' end=+^\s\@!+'
+      \ ' contains=@s:ReferenceNamerstCruft,@NoSpell'
 
 syn region rstHyperlinkTarget contained matchgroup=rstDirective
       \ start='_\%(_\|[^:\\]*\%(\\.[^:\\]*\)*\):\_s' skip=+^$+ end=+^\s\@!+
@@ -83,8 +103,10 @@ syn region rstHyperlinkTarget contained matchgroup=rstDirective
 syn region rstHyperlinkTarget matchgroup=rstDirective
       \ start=+^__\_s+ skip=+^$+ end=+^\s\@!+
 
+" To Fix #61 (https://github.com/Rykka/riv.vim/issues/61) , I removed the SubstitutionDefinition from 
+" ExDirective's inline hightlight group
 syn cluster rstONECruft                contains=
-      \ rstInterpretedText,rstInlineLiteral,rstSubstitutionReference,
+      \ rstInterpretedText,rstInlineLiteral,
       \ rstInlineInternalTargets,rstFootnoteReference,rstHyperlinkReference
 
 " For Strong/Emphasis. Only oneline pattern could be used here.
@@ -155,7 +177,7 @@ syn sync minlines=50 linebreaks=1
 
 hi def link rstTodo                         Todo
 hi def link rstComment                      Comment
-hi def link rstSections                     Typedef
+hi def link rstSections                     Label
 hi def link rstTransition                   Type
 hi def link rstLiteralBlock                 String
 hi def link rstLineBlock                    String
@@ -164,6 +186,7 @@ hi def link rstDoctestBlock                 PreProc
 hi def link rstTableLines                   rstDelimiter
 hi def link rstSimpleTableLines             rstTableLines
 hi def link rstExplicitMarkup               rstDirective
+hi def link rstExplicitMarkupDot            PreProc
 hi def link rstDirective                    Keyword
 hi def link rstFootnote                     String
 hi def link rstCitation                     String

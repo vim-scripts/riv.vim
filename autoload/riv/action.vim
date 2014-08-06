@@ -3,28 +3,36 @@
 "    File: action.vim
 " Summary: simulate and fix some misc actions
 "  Author: Rykka G.Forest
-"  Update: 2012-07-07
+"  Update: 2014-02-10
 "=============================================
 let s:cpo_save = &cpo
 set cpo-=C
 
 let s:p = g:_riv_p
-fun! riv#action#tutor(name) "{{{
-    let file = g:_riv_c.doc_pat . a:name . '.rst'
-    let lines = readfile(file)
-    exe 'noa keepa bot new ~/Documents/'.a:name.'.rst'
-	setl noswf nolist nospell nocuc wfh
-	" setl bt=nofile bh=unload
-    set ft=rst
-    0,$del _
-    call setline(1,lines)
-    call riv#create#auto_mkdir()
-    update
+fun! riv#action#tutor(fname, bname) "{{{
+    " Read tutor in a nofile buffer.
+    "   if not exists, create buffer
+    "   if buffer exists, load buffer.
+    if riv#win#new(a:bname)
+        setl buftype=nofile bufhidden=hide noswapfile
+        set ft=rst
+        let file = g:_riv_c.doc_path . a:fname . '.rst'
+        try
+            call setline(1, readfile(file))
+        catch
+            call riv#error('Error while reading file: '.v:exception)
+        endtry
+        update
+    endif
+
 endfun "}}}
 fun! riv#action#open(name) "{{{
-    let file = g:_riv_c.doc_pat . 'riv_'.a:name.'.rst'
-    exe 'noa keepa bot sp' file
-    setl ro noma ft=rst
+    let file = g:_riv_c.doc_path . 'riv_'.a:name.'.rst'
+    if riv#win#new(file)
+        " exe 'noa keepa bot sp' file
+        setl ro noma ft=rst
+        update
+    endif
 endfun "}}}
 
 fun! riv#action#db_click(mouse) "{{{
@@ -107,8 +115,8 @@ endfun "}}}
 fun! riv#action#ins_backspace() "{{{
     let [row,col] = getpos('.')[1:2]
     let line = getline('.')
-    if s:is_in_bgn_blank(col, line)
-        let cmd = riv#insert#shiftleft(row,col)
+    if s:is_row_bgns_blank(col, line)
+        let cmd = riv#insert#shiftleft_bs(row,col)
     else
         let cmd = ""
     endif
@@ -119,7 +127,7 @@ fun! riv#action#ins_backspace2() "{{{
     " The
     let [row,col] = getpos('.')[1:2]
     let line = getline('.')
-    if s:is_in_bgn_blank(col, line)
+    if s:is_row_bgns_blank(col, line)
         let cmd = riv#insert#shiftleft(row,col)
     else
         let cmd = ""
@@ -133,7 +141,7 @@ fun! s:is_in_list_item(col,line) "{{{
     " it's the col before last space in list-item
     return a:col <= matchend(a:line, s:p.all_list)
 endfun "}}}
-fun! s:is_in_bgn_blank(col,line) "{{{
+fun! s:is_row_bgns_blank(col,line) "{{{
     " it's the col include last space in a line
     return a:col <= matchend(a:line, '^\s*') + 1
 endfun "}}}
@@ -161,7 +169,7 @@ fun! riv#action#ins_tab() "{{{
     elseif s:is_in_list_item(col, line)
         " before the list item, shift the list
         return "\<C-O>:call riv#list#shift('+')\<CR>"
-    elseif s:is_in_bgn_blank(col, line)
+    elseif s:is_row_bgns_blank(col, line)
         let cmd = riv#insert#shiftright(row,col)
     else
         let cmd = ''
@@ -190,7 +198,7 @@ fun! riv#action#ins_stab() "{{{
     elseif s:is_in_list_item(col, line)
         " before the list item, shift the list
         return "\<C-O>:call riv#list#shift('-')\<CR>"
-    elseif s:is_in_bgn_blank(col, line)
+    elseif s:is_row_bgns_blank(col, line)
         let cmd = riv#insert#shiftleft(row,col)
     else
         let cmd = '' 

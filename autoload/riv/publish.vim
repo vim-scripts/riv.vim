@@ -3,11 +3,16 @@
 "    File: publish.vim
 " Summary: publish to html/pdf...
 "  Author: Rykka G.F
-"  Update: 2012-09-17
+"  Update: 2013-04-23
 "=============================================
 let s:cpo_save = &cpo
 set cpo-=C
 
+if has('win32') || has('win64')
+    let s:os = 'win'
+else
+    let s:os = 'unix'
+endif
 fun! s:escape_file_ptn(file) "{{{
     return  '\v%(^|\s|[''"([{<,;!?])\zs\[\[' . a:file . '\]\]\ze%($|\s|[''")\]}>:.,;!?])'
 endfun "}}}
@@ -103,54 +108,150 @@ let s:css_default = g:_riv_c.riv_path.'html/default.css'
 let s:css_emacs = g:_riv_c.riv_path.'html/emacs.css'
 let s:css_friendly = g:_riv_c.riv_path.'html/friendly.css'
 let s:css_html = g:_riv_c.riv_path.'html/html4css1.css'
+let s:css_size = g:_riv_c.riv_path.'html/docsize.css'
+let s:css_typo = g:_riv_c.riv_path.'html/typo.css'
+let s:tex_default = g:_riv_c.riv_path.'latex/default.tex'
+let s:tex_cjk = g:_riv_c.riv_path.'latex/cjk.tex'
 
-fun! s:convert(ft, input, output, ...) "{{{
-    " try 2 first , for py3 version should decode to 'bytes'.
-    let exe = 'rst2'.a:ft.'2.py'
+fun! s:convert(options) "{{{
+    " options {
+    "   filetype: 'html',
+    "   input: 'tmp/xxx.rst',
+    "   output: 'html/xxx.html',
+    "   real_file: 'rst/xxx.rst' or input,
+    " }
+    
+    let ft =   get(a:options, 'filetype', 'html')
+    let o_ft = ''
+    let input = get(a:options, 'input', '')
+    let output = get(a:options, 'output', '')
+    let real_file = get(a:options, 'real_file', input)
+    let style = ''
+    let args = s:rst_args(ft) 
+    
+    " For PDF file , we should try rst2latex and rst2xetex.
+    if ft=='pdf'
+        let ft='latex'
+        let out_path = fnamemodify(output, ':p:h')
+        let file =  fnamemodify(output, ':p:t:r').'.xetex'
+        let o_file = output
+        let output = out_path.'/'.file
+        let o_ft = 'pdf'
+    endif
+
+
+    let exe = 'rst2'.ft.'2.py'
     if !executable(exe)
-        let exe = 'rst2'.a:ft.'.py'
+        let exe = 'rst2'.ft.'.py'
         if !executable(exe)
-            call riv#error('Could not find '.exe)
-            return -1
+            " try whitout .py extension. Compatibility with some
+            " python-docutils packages (Ubuntu 12.04 at least)
+            let exe = 'rst2'.ft.''
+            if !executable(exe)
+                call riv#error('Could not find '.exe)
+                return -1
+            endif
         endif
     endif
-    let args = a:0 ? a:1 : ''
-    let style = ''
-    if a:ft == 'html' 
-        if g:riv_html_code_hl_style == 'default'
-            let style = ' --stylesheet='.s:css_html.','.s:css_default
-        elseif g:riv_html_code_hl_style == 'emacs'
-            let style = ' --stylesheet='.s:css_html.','.s:css_emacs
-        elseif g:riv_html_code_hl_style == 'friendly'
-            let style = ' --stylesheet='.s:css_html.','.s:css_friendly
+    
+
+    " try 2 first , for py3 version should decode to 'bytes'.
+    if ft == 'html' 
+        if g:riv_html_code_hl_style =~ '^\(default\|emacs\|friendly\)$'
+            let style = ' --stylesheet='.s:css_html.','
+                        \.s:css_{g:riv_html_code_hl_style}.','
+                        \.s:css_typo.','
+                        \.s:css_size
         elseif filereadable(g:riv_html_code_hl_style)
             let style = ' --stylesheet='.g:riv_html_code_hl_style
         endif
+
+        " Copy the images for figure and image directives.
+        call s:copy_img(real_file, output)
+    elseif ft == 'latex'
+        " let style = ' --stylesheet='.s:tex_cjk
+        call s:copy_img(input, output)
     endif
-    call s:sys( exe." ". style . args .' '. shellescape(a:input) . " > " . shellescape(a:output) )
+
+    call s:sys( exe." ". style ." ". args ." "
+                \.shellescape(input) 
+                \." > ".shellescape(output) )
+    if o_ft=='pdf'
+        " See :Man pdflatex for option details
+        if executable('pdflatex')
+            call s:sys( 'pdflatex -interaction batchmode -output-directory '.out_path.' '.shellescape(output) )
+            " call s:sys( 'xelatex '.shellescape(output) )
+        else
+            call riv#error('Could not find pdflatex. Please Install texlive package.')
+            return -1
+        endif
+    endif
+endfun "}}}
+
+fun! s:copy_img(input, output) "{{{
+    if !exists("*mkdir")
+        call riv#error('No mkdir().')
+        return
+    endif
+    let out_path = fnamemodify(a:output, ':p:h')
+    let old_path = fnamemodify(a:input, ':p:h')
+    let file = readfile(a:input)
+    for line in file
+        if line =~ '^.. \(figure\|image\)::'
+            let img = matchstr(line, '^.. \(figure\|image\):: \s*\zs.*\ze\s*$')
+            if riv#path#is_relative(img)
+                let old_file = riv#path#join(old_path, img) 
+                let new_file = riv#path#join(out_path, img) 
+                let new_path = fnamemodify(new_file, ":p:h")
+                if !isdirectory(new_path)
+                    call mkdir(new_path, 'p')
+                endif
+                if s:os == 'win'
+                    " /c : Ignores errors.
+                    " /q : Suppresses messages.
+                    " /i : Creates new directory.
+                    " /e : Copies all subdirectories.
+                    " /y : Suppresses prompting to confirm.
+                    let cmd = 'xcopy /E /Y /C /I '
+                                \.shellescape(old_file).' '
+                                \.new_file
+                else
+                    let cmd = 'cp -rf '.old_file.' '.new_file
+                endif
+                call s:sys(cmd) 
+            endif
+        endif
+    endfor
 endfun "}}}
 fun! s:single2(ft, file, browse) "{{{
     " A file that is not in a project
     let file = expand(a:file)
+
+    " put it in same dir if temp_path is 0 or '',
+    " if it's 1 put in tempdir
+    " else if it's a dir, put it in that dir.
     if empty(g:riv_temp_path)
-        let out_path = riv#path#ext_to(file, a:ft)
+        let out_file = riv#path#ext_to(file, a:ft)
     elseif g:riv_temp_path == 1
         let temp_path = s:tempdir
-        let out_path = temp_path . riv#path#ext_tail(file, a:ft)
+        let out_file = temp_path . riv#path#ext_tail(file, a:ft)
     else
         let temp_path = riv#path#directory(g:riv_temp_path)  
-        let out_path = temp_path . riv#path#ext_tail(file, a:ft)
+        let out_file = temp_path . riv#path#ext_tail(file, a:ft)
     endif
 
-    call s:convert(a:ft, file, out_path, s:rst_args(a:ft))
+    call s:convert({'filetype':a:ft,
+                   \'input': file,
+                   \'output': out_file,
+                   \})
 
     if a:browse
         if a:ft == "latex"
-            exe 'sp ' out_path
+            exe 'sp ' out_file
         elseif a:ft == "odt"
-            call s:sys(g:riv_ft_browser . ' '. shellescape(out_path) . ' &')
+            call s:sys(g:riv_ft_browser . ' '. shellescape(out_file) . ' &')
         else
-            call s:sys(g:riv_web_browser . ' '. shellescape(out_path) . ' &')
+            call s:sys(g:riv_web_browser . ' '. shellescape(out_file) . ' &')
         endif
     endif
 endfun "}}}
@@ -173,9 +274,19 @@ fun! riv#publish#2(ft, file, path, browse) "{{{
     let file_path = riv#path#ext_to(out_path, a:ft)
     call riv#publish#auto_mkdir(out_path)
     if riv#path#file_link_style() == 1
-        call s:convert(a:ft, s:create_tmp(file), file_path, s:rst_args(a:ft))
+
+        call s:convert({'filetype': a:ft,
+                    \'input': s:create_tmp(file),
+                    \'real_file': file,
+                    \'output': file_path,
+                    \})
+
     else
-        call s:convert(a:ft, file, file_path, s:rst_args(a:ft))
+        call s:convert({'filetype': a:ft,
+                    \'input': file,
+                    \'output': file_path,
+                    \})
+
     endif
     if a:browse
         if a:ft == "latex"
@@ -183,7 +294,8 @@ fun! riv#publish#2(ft, file, path, browse) "{{{
         elseif a:ft == "odt"
             call s:sys(g:riv_ft_browser . ' '. file_path . ' &')
         else
-            call s:sys(g:riv_web_browser . ' '. file_path . ' &')
+            let escaped_path = substitute(file_path, ' ', '\\ ', 'g')
+            call s:sys(g:riv_web_browser . ' '. escaped_path . ' &')
         endif
     endif
 endfun "}}}
@@ -201,9 +313,9 @@ fun! riv#publish#copy2proj(file,html_path) abort "{{{
     call riv#publish#auto_mkdir(out_path)
     call s:sys( 'cp -f '. a:file. ' '.  fnamemodify(out_path, ':h'))
 endfun "}}}
-fun! s:get_proj_file_lists()
+fun! s:get_proj_file_lists() "{{{
     return filter(split(glob(riv#path#root().'**/*'.riv#path#ext()),'\n'), 'v:val !~ '''.riv#path#p_build().'''')
-endfun
+endfun "}}}
 fun! riv#publish#proj2(ft) abort "{{{
     let ft_path = riv#path#build_ft(a:ft)
     let files = s:get_proj_file_lists()
@@ -226,7 +338,8 @@ fun! riv#publish#proj2(ft) abort "{{{
 endfun "}}}
 
 fun! s:rst_args(ft) "{{{
-    return exists("g:riv_rst2".a:ft."_args") ? !empty(g:riv_rst2{a:ft}_args)
+    return exists("g:riv_rst2".a:ft."_args") ? 
+                \ !empty(g:riv_rst2{a:ft}_args)
                 \ ? g:riv_rst2{a:ft}_args : '' : ''
 endfun "}}}
 fun! riv#publish#auto_mkdir(path) "{{{

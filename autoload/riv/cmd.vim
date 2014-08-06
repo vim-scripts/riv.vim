@@ -3,7 +3,7 @@
 "    File: cmd.vim
 " Summary: Commands
 "  Author: Rykka G.F
-"  Update: 2012-10-14
+"  Update: 2014-07-11
 "=============================================
 let s:cpo_save = &cpo
 set cpo-=C
@@ -63,12 +63,12 @@ let g:riv_default.cmds = [
 \{'name': 'RivLinkNext' , 'act': 'call riv#link#finder("f")',
     \'note': 'Jump to Next Link',
     \'menu': 'Link.Next',
-    \'type': 'buf', 'mode': 'n', 'maps': ['kn'], 'keys': ['<TAB>'],
+    \'type': 'buf', 'mode': 'n', 'maps': ['kn'], 'keys': ['<Tab>'],
 \},
 \{'name': 'RivLinkPrev' , 'act': 'call riv#link#finder("b")',
     \'note': 'Jump to Prev Linx',
     \'menu': 'Link.Prev',
-    \'type': 'buf', 'mode': 'n', 'maps': ['kp'], 'keys': ['<S-TAB>'],
+    \'type': 'buf', 'mode': 'n', 'maps': ['kp'], 'keys': ['<S-Tab>'],
 \},
 \{'name': 'RivShiftRight' , 'act': 'call riv#list#shift("+")',
     \'note': 'Shift Right with level and indent adjustment.',
@@ -362,6 +362,11 @@ let g:riv_default.cmds = [
     \'menu': 'Convert.S5',
     \'type': 'buf', 'mode': 'm', 'maps': ['2ss'], 'keys': [],
 \},
+\{'name': 'Riv2Pdf' , 'act': 'call riv#publish#file2("pdf",1)',
+    \'note': 'Convert to PDF',
+    \'menu': 'Convert.Pdf',
+    \'type': 'buf', 'mode': 'm', 'maps': ['2pp'], 'keys': [],
+\},
 \{'name': 'Riv2Xml' , 'act': 'call riv#publish#file2("xml",1)',
     \'note': 'Convert to Xml',
     \'menu': 'Convert.Xml',
@@ -452,17 +457,17 @@ let g:riv_default.cmds = [
     \'note': 'Run doctest for Vim Script',
     \'menu': 'Helper.VimTest',
 \},
-\{'name': 'RivIntro' , 'act': 'call riv#action#open("intro")',
+\{'name': 'RivIntro' , 'act': 'call riv#action#tutor("riv_intro","[Riv_Intro]")',
     \'note': 'Show Riv Intro',
     \'menu': 'About.Riv\ Intro',
     \'type': 'menu'
 \},
-\{'name': 'RivInstruction' , 'act': 'call riv#action#open("instruction")',
+\{'name': 'RivInstruction' , 'act': 'call riv#action#tutor("riv_instruction", "[Riv_Instruction]")',
     \'note': 'Show Riv Instrucion',
     \'menu': 'About.Riv\ Intruction',
     \'type': 'menu'
 \},
-\{'name': 'RivQuickStart' , 'act': 'call riv#action#tutor("riv_quickstart")',
+\{'name': 'RivQuickStart' , 'act': 'call riv#action#tutor("riv_quickstart", "[Riv_QuickStart]")',
     \'note': 'Show Riv QuickStart',
     \'menu': 'About.Riv\ QuickStart',
     \'type': 'menu'
@@ -480,6 +485,11 @@ let g:riv_default.cmds = [
 \{'name': 'RivSpecification' , 'act': 'call riv#action#open("specification")',
     \'note': 'Show RST Specification',
     \'menu': 'About.RST\ Specification',
+    \'type': 'menu'
+\},
+\{'name': 'RivDirectives' , 'act': 'call riv#action#open("directives")',
+    \'note': 'Show RST Directives',
+    \'menu': 'About.RST\ Directives',
     \'type': 'menu'
 \},
 \{'name': 'RivGetLatest',
@@ -532,49 +542,72 @@ fun! riv#cmd#init_maps() "{{{
         if !has_key(cmd, 'keymode')
           for key in map(copy(cmd.maps), 'leader.v:val') + cmd.keys
             if cmd.mode =~ 'm'
-              exe "map <silent><buffer>" key "<Plug>(".cmd.name.")"
+              if index(g:riv_default.ignored_maps, key) == -1
+                exe "map <silent><buffer>" key "<Plug>(".cmd.name.")"
+              endif
             endif
             if cmd.mode =~ 'n'
-              exe "nma <silent><buffer>" key "<Plug>(".cmd.name .")"
+              if index(g:riv_default.ignored_nmaps, key) == -1
+                exe "nma <silent><buffer>" key "<Plug>(".cmd.name .")"
+              endif
             endif
             if cmd.mode =~ 'i'
-              exe "ima <silent><buffer>" key "<C-O><Plug>(".cmd.name.")"
+              if index(g:riv_default.ignored_imaps, key) == -1
+                exe "ima <silent><buffer>" key "<C-O><Plug>(".cmd.name.")"
+              endif
             endif
             if cmd.mode =~ 'v'
               " for the range function. only :call can be used.
-              exe "vma <silent><buffer>" key ":".cmd.act."<CR>" 
+              " NOTE: #29: use noremap to execute cmd.act
+              if index(g:riv_default.ignored_vmaps, key) == -1
+              exe "vno <silent><buffer>" key ":".cmd.act."<CR>" 
+              endif
             endif
           endfor
         else
           " For the key and map have seperated Mode.
           for key in map(copy(cmd.maps), 'leader.v:val')
             if cmd.mode =~ 'm'
-              exe "map <silent><buffer>" key "<Plug>(".cmd.name.")"
+              if index(g:riv_default.ignored_maps, key) == -1
+                exe "map <silent><buffer>" key "<Plug>(".cmd.name.")"
+              endif
             endif
             if cmd.mode =~ 'n'
-              exe "nma <silent><buffer>" key "<Plug>(".cmd.name .")"
+              if index(g:riv_default.ignored_nmaps, key) == -1
+                exe "nma <silent><buffer>" key "<Plug>(".cmd.name .")"
+              endif
             endif
             if cmd.mode =~ 'i'
-              exe "ima <silent><buffer>" key "<C-O><Plug>(".cmd.name.")"
+              if index(g:riv_default.ignored_imaps, key) == -1
+                exe "ima <silent><buffer>" key "<C-O><Plug>(".cmd.name.")"
+              endif
             endif
             if cmd.mode =~ 'v'
               " for the range function. only :call can be used.
-              exe "vma <silent><buffer>" key ":".cmd.act."<CR>" 
+              if index(g:riv_default.ignored_vmaps, key) == -1
+              exe "vno <silent><buffer>" key ":".cmd.act."<CR>" 
+              endif
             endif
           endfor
           for key in cmd.keys
             if cmd.keymode =~ 'm'
-              exe "map <silent><buffer>" key "<Plug>(".cmd.name.")"
+              if index(g:riv_default.ignored_maps, key) == -1
+                exe "map <silent><buffer>" key "<Plug>(".cmd.name.")"
+              endif
             endif
             if cmd.keymode =~ 'n'
-              exe "nma <silent><buffer>" key "<Plug>(".cmd.name .")"
+              if index(g:riv_default.ignored_nmaps, key) == -1
+                exe "nma <silent><buffer>" key "<Plug>(".cmd.name .")"
+              endif
             endif
             if cmd.keymode =~ 'i'
-              exe "ima <silent><buffer>" key "<C-O>:".cmd.act."<CR>"
+              exe "ino <silent><buffer>" key "<C-O>:".cmd.act."<CR>"
             endif
             if cmd.keymode =~ 'v'
               " for the range function. only :call can be used.
-              exe "vma <silent><buffer>" key ":".cmd.act."<CR>" 
+              if index(g:riv_default.ignored_vmaps, key) == -1
+                exe "vno <silent><buffer>" key ":".cmd.act."<CR>" 
+              endif
             endif
           endfor
         endif
@@ -583,7 +616,9 @@ fun! riv#cmd#init_maps() "{{{
       "XXX This is for those super inserting
       if has_key(cmd, 'maps')
         for key in map(copy(cmd.maps), 'leader.v:val') + cmd.keys
-          exe "ino <silent><buffer><expr>" key cmd.act 
+            if index(g:riv_default.ignored_imaps, key) == -1
+              exe "ino <silent><buffer><expr>" key cmd.act 
+            endif
         endfor
       endif
     elseif cmd.type == 'mod'
@@ -601,14 +636,18 @@ fun! riv#cmd#init_maps() "{{{
     elseif cmd.type == 'expr'
       if has_key(cmd, 'maps')
         for key in map(copy(cmd.maps), 'leader.v:val') + cmd.keys
-          exe "ino <silent><buffer><expr>" key cmd.act 
+            if index(g:riv_default.ignored_imaps, key) == -1
+              exe "ino <silent><buffer><expr>" key cmd.act 
+            endif
         endfor
       endif
     elseif cmd.type == 'norm'
       if has_key(cmd, 'maps')
         for key in map(copy(cmd.maps), 'leader.v:val') + cmd.keys
           if cmd.mode =~ 'n'
-            exe "nno <silent><buffer>" key cmd.act
+            if index(g:riv_default.ignored_nmaps, key) == -1
+              exe "nno <silent><buffer>" key cmd.act
+            endif
           endif
           if cmd.mode =~ 'v' && has_key(cmd, 'vact')
             exe "vno <silent><buffer>" key cmd.vact

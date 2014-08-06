@@ -1,9 +1,9 @@
-###############
-Riv: Instrucion
-###############
+################
+Riv: Instruction
+################
 
 :Author: Rykka G.F
-:Update: 2012-10-16
+:Update: 2014-07-12
 :Version: 0.73 
 :Github: https://github.com/Rykka/riv.vim
 
@@ -491,7 +491,9 @@ They are highlighted. Some are folded.
 
   + New List:
   
-    Insert Mode Only: 
+    Insert Mode Only. Note that some terminals pass ``<C-CR>`` and ``<S-CR>``
+    as different (or indistinguishable) mappings, so the alternative key mapping
+    should be used.
 
     - ``<CR>\<KEnter>`` (enter key and keypad enter key)
       Insert the content of this list.
@@ -499,13 +501,13 @@ They are highlighted. Some are folded.
       To insert content in new line of this list item. Add a blank line before it.
   
     - ``<C-CR>\<C-KEnter>`` 
-      or ``<C-E>li``
+      or ``<C-E>ln``
       Insert a new list of current list level
     - ``<S-CR>\<S-KEnter>`` 
-      or ``<C-E>lj``
+      or ``<C-E>lb``
       Insert a new list of current child list level
     - ``<C-S-CR>\<C-S-KEnter>`` 
-      or ``<C-E>lk``
+      or ``<C-E>lp``
       Insert a new list of current parent list level
     - When it's a field list, only the indent is inserted.
   
@@ -706,6 +708,7 @@ Convert rst files to html/xml/latex/odt/...
   + `:Riv2Xml`_ ``<C-E>2xx`` convert to xml file and browse by web browser
   + `:Riv2S5`_ ``<C-E>2ss`` convert to s5 file and browse by web browser
   + `:Riv2Latex`_ ``<C-E>2ll`` convert to latex file and edit in vim
+  + `:Riv2Pdf`_ ``<C-E>2pp`` convert to latex file and then convert to pdf file.
   
 * Options:
 
@@ -1434,6 +1437,10 @@ Commands
 
     **Normal** :	<C-E>2ll
 
+  - _`:Riv2Pdf` : Convert to Pdf
+
+    **Normal** :	<C-E>2pp
+
   - _`:Riv2BuildPath` : Show Build Path of the project
 
     **Normal** :	<C-E>2b
@@ -1502,7 +1509,7 @@ Commands
 
   - _`:RivIntro` : Show Riv Intro
 
-  - _`:RivInstruction` : Show Riv Instrucion
+  - _`:RivInstruction` : Show Riv Instruction
 
   - _`:RivQuickStart` : Show Riv QuickStart
 
@@ -1590,12 +1597,20 @@ Options
 |                                            |                                                        |
 |                                            |     :download:`xxx.py` => xxx.py                       |
 +--------------------------------------------+--------------------------------------------------------+
-| Syntax_                                    |                                                        |
-+--------------------------------------------+--------------------------------------------------------+
-| _`g:riv_highlight_code`                    | The language name                                      |
-|                                            |                                                        |
-|                                            |                                                        |
-| 'lua,python,cpp,javascript,vim,sh'         | is the syntax name used by vim.                        |
+
++------------------------------------+-------------------------------------------------+
+| Syntax_                            |                                                 |
++------------------------------------+-------------------------------------------------+
+| _`g:riv_highlight_code`            | The language name                               |
+|                                    |                                                 |
+| 'lua,python,cpp,javascript,vim,sh' | is the syntax name used by vim.                 |
+|                                    |                                                 |
+|                                    | For some syntax have different name in pygments |
+|                                    | and vim,  you can use `|` to seperate it.       |
+|                                    |                                                 |
+|                                    | e.g: pygments_code_name|vim_code_name           |
++------------------------------------+-------------------------------------------------+
+
 +--------------------------------------------+--------------------------------------------------------+
 | _`g:riv_code_indicator`                    | Highlight the first column of code directives.         |
 |                                            |                                                        |
@@ -1636,6 +1651,11 @@ Options
 |                                            | Each keyword is separated by ','.                      |
 +--------------------------------------------+--------------------------------------------------------+
 |  Folding_                                  |                                                        |
++--------------------------------------------+--------------------------------------------------------+
+| _`g:riv_disable_folding`                   | Disable Folding or not                                 |
+|                                            |                                                        |
+| 0                                          | - 0: Enable it.                                        |
+|                                            | - 1: Disable it.                                       |
 +--------------------------------------------+--------------------------------------------------------+
 | _`g:riv_fold_blank`                        | Folding blank lines in the end of the folding lines.   |
 |                                            |                                                        |
@@ -1722,6 +1742,10 @@ Options
 +--------------------------------------------+--------------------------------------------------------+
 | Insert_                                    |                                                        |
 +--------------------------------------------+--------------------------------------------------------+
+| _`g:riv_disable_indent`                    | Set to 1 to use vim's default indent expr function.    |
+|                                            | default is 0.                                          |
+| 0                                          |                                                        |
++--------------------------------------------+--------------------------------------------------------+
 | _`g:riv_i_tab_pum_next`                    | Use ``<Tab>`` to act as ``<C-N>`` in insert mode when  |
 |                                            | there is a popup menu.                                 |
 | 1                                          |                                                        |
@@ -1738,6 +1762,14 @@ Options
 | _`g:riv_ignored_imaps`                     | Use to disable mapping in insert mode.                 |
 |                                            |                                                        |
 | ''                                         | ``let g:riv_ignored_imaps = "<Tab>,<S-Tab>"``          |
++--------------------------------------------+--------------------------------------------------------+
+| _`g:riv_ignored_nmaps`                     | Use to disable mapping in normal mode.                 |
+|                                            |                                                        |
+| ''                                         | ``let g:riv_ignored_nmaps = "<Tab>,<S-Tab>"``          |
++--------------------------------------------+--------------------------------------------------------+
+| _`g:riv_ignored_vmaps`                     | Use to disable mapping in visual mode.                 |
+|                                            |                                                        |
+| ''                                         | ``let g:riv_ignored_vmaps = "<Tab>,<S-Tab>"``          |
 +--------------------------------------------+--------------------------------------------------------+
 | **Miscs**                                  |                                                        |
 +--------------------------------------------+--------------------------------------------------------+
@@ -1771,6 +1803,10 @@ Options
 | _`g:riv_auto_format_table`                 | Auto formating table when leave Insert Mode            |
 |                                            |                                                        |
 | 1                                          |                                                        |
++--------------------------------------------+--------------------------------------------------------+
+| _`g:riv_default_path`                      | Default path for your project.                         |
+|                                            |                                                        |
+| '~/Documents/Riv'                          |                                                        |
 +--------------------------------------------+--------------------------------------------------------+
 
 

@@ -3,8 +3,8 @@ Riv: reStructuredText in Vim
 ############################
 
 :Author: Rykka G.F
-:Update: 2012-10-16
-:Version: 0.74 
+:Update: 2013-01-12
+:Version: 0.75 
 :Github: https://github.com/Rykka/riv.vim
 
 * _`Index`:
@@ -179,17 +179,11 @@ This
 
 Things todo in this version.
 
-* 0.73: This is mainly a bug fix version.
+* 0.75:
 
-  :Intro: DONE 2012-10-19 ScreenCast tutor
-  :Indent: FIXED 2012-10-16 List indentation for visual lines are wrong
-  :File: DONE 2012-10-17 The file pattern separated for each project.
-  :Insert: FIXED 2012-10-16 Literal-block create have trailing chars.
-  :Lists: DONE 2012-10-17 Add :RivListToggle
-  :Lists: DONE 2012-10-17 List new/sub/sup rewrite
-  :Indent: FIXED 2012-10-17 fix SuperEnter's indent
-  :Syntax: DONE 2012-10-17 add highlight for inline hyperlink reference and target
-  :Syntax: FIXME fix the (**) highlight in directive.
+  -  #21: Fix section syntax to ignore '::' and '..'.
+  -  #25: Fix tutor's document path.  
+  -  #27: Add ``g:riv_default_path`` ('~/Documents/Riv')
 
 Next
 ~~~~~
