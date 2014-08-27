@@ -6,14 +6,43 @@ Riv: Take Notes in rst
 
     -- `Jon Stewart`_
 
-:Last Update: 2014-08-07
-:Version: 0.76 
+:Last Update: 2014-08-28
+:Version: 0.77
 
+
+What's New
+===========
+
+Lots of changes were made, See changelog_ for details.
+
+  A. A brand new html theme for riv, rhythm.css_
+  B. Auto converting to html on ``:write``:
+  C. New syntax and method for local files, 
+  D. Unicode Link names.
+  E. Better and faster indent behavior.
+  F. Fixed lots of misc bugs and made lots of small optimization
+
+----
+
+   **And**
+
+Please help improving this plugin, for better writing and reading.
+
+Both bug reports and suggestions are welcome.
+
+Many Thanks!
+
+----
 
 Intro
 =====
 
 **Riv** is a vim plugin for taking notes with reStructuredText_.
+
+
+Screencast with InstantRst_ (It's a bit outdated,  anyone create a new one are welcome)
+
+.. image:: intro.gif
 
 Comparion
 =========
@@ -37,12 +66,6 @@ In comparition, the most advantage of **Riv.vim** is reStructuredText_ support.
 
     There is a post of comparions between reStructuredText and markdown https://gist.github.com/dupuy/1855764
 
-Here's a screenshot of edit in vim (moonlight scheme of Galaxy.vim_ ) and instant preview in firefox (with InstantRst_ ):
-
-.. image::
-   http://i.imgur.com/xPfs1fy.png
-   :height: 384px
-   :width: 683px
 
 Features
 ========
@@ -55,7 +78,7 @@ Features
     Improved syntax highlighting and folding support for reading document clearly.
 **Publish** 
     Convert rst files to a number of different formats: pdf, html, xml, latex and odt etc.
-    sofish's typo.css_ is added for better performance. 
+    A new theme rhythm.css_ is added for better performance. 
 **Plugins**   
     Support many plugins like Sphinx_ syntax support.
     Other rst plugins:
@@ -115,16 +138,16 @@ Here is the Screencast:
 * Riv: QuickStart_ (HD)
 
 
-Vim Novince
------------
+New To Vim
+----------
 
 * If you are new to Vim, you can get a basic overview of Vim using
   ``vimtutor``. To use it simply type ``vimtutor`` in your shell.
   
 * To view the quick reference of Vim, use ``:h quickref``.
 
-Rst Novince
-------------
+New TO Rst
+----------
 
 * To get a quick overview of reStructuredText, some of the available options
   are:
@@ -139,8 +162,8 @@ Rst Novince
 * Finally, you can use "`reStructuredText cheatsheet`_" for a quick review. Use
   ``:RivCheatSheet`` to open it in Vim.
 
-Riv Novince
------------
+New To Riv
+----------
 
 * For getting started with Riv, read "`QuickStart With Riv`_".
   You can also view it using ``:RivQuickStart`` in Vim.
@@ -161,7 +184,7 @@ Common Issues
 -------------
 
 * If you get errors with folding in documents, you can try to force reload
-  using ``:RivTestReload`` or ``<C-E>t```.
+  using ``:RivReload`` or ``<C-E>t```.
 
   Or just `:w` as it will auto refolding after saving.
 
@@ -206,7 +229,12 @@ Common Issues
 .. _Nikola: https://github.com/getnikola/nikola
 .. _`@rykkaf`: https://twitter.com/rykkaf
 .. _InstantRst: https://github.com/Rykka/InstantRst
+.. _Galaxy.vim: https://github.com/Rykka/galaxy.vim
 .. _HoverCraft: https://github.com/regebro/hovercraft
 .. _typo.css:  https://github.com/sofish/Typo.css 
-.. _Galaxy.vim: https://github.com/Rykka/galaxy.vim
 .. _VOoM: https://github.com/vim-voom/VOoM
+.. _doctest.vim: https://github.com/Rykka/doctest.vim
+.. _`#71`: https://github.com/Rykka/riv.vim/issues/71
+.. _`#72`: https://github.com/Rykka/riv.vim/issues/72
+.. _rhythm.css: https://github.com/Rykka/rhythm.css
+.. _changelog: changelog.rst

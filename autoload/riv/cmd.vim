@@ -3,7 +3,7 @@
 "    File: cmd.vim
 " Summary: Commands
 "  Author: Rykka G.F
-"  Update: 2014-07-11
+"  Update: 2014-08-09
 "=============================================
 let s:cpo_save = &cpo
 set cpo-=C
@@ -59,6 +59,11 @@ let g:riv_default.cmds = [
     \'note': 'Open Link under Cursor',
     \'menu': 'Link.Open',
     \'type': 'buf', 'mode': 'n', 'maps': ['ko'], 'keys': [],
+\},
+\{'name': 'RivLinkShow' , 'act': 'call riv#link#open(1)',
+    \'note': 'Move to Link under Cursor',
+    \'menu': 'Link.Show',
+    \'type': 'buf', 'mode': 'n', 'maps': ['ks'], 'keys': [],
 \},
 \{'name': 'RivLinkNext' , 'act': 'call riv#link#finder("f")',
     \'note': 'Jump to Next Link',
@@ -266,10 +271,15 @@ let g:riv_default.cmds = [
     \'type': 'buf', 'mode': 'm', 'maps': ['uc'], 'keys': [],
 \},
 \{'menu': '---Edit---' ,'type': 'menu' } ,
-\{'name': 'RivCreateLink' , 'act': 'call riv#create#link()',
+\{'name': 'RivCreateLink' , 'act': 'call riv#create#link(mode().visualmode())',
     \'note': 'Create Link based on current word',
     \'menu': 'Insert.Link',
-    \'type': 'buf', 'mode': 'mi', 'maps': ['ck'], 'keys': [],
+    \'type': 'buf', 'mode': 'vmi', 'maps': ['ck'], 'keys': [],
+\},
+\{'name': 'RivCreateGitLink' , 'act': 'call riv#create#git_commit_url()',
+    \'note': 'Create github commit link',
+    \'menu': 'Insert.Git\ Link',
+    \'type': 'buf', 'mode': 'mi', 'maps': ['cg'], 'keys': [],
 \},
 \{'name': 'RivCreateFoot' , 'act': 'call riv#create#foot()',
     \'note': 'Create Footnote',
@@ -382,7 +392,7 @@ let g:riv_default.cmds = [
     \'menu': 'Convert.Build\ Path',
     \'type': 'buf', 'mode': 'm', 'maps': ['2b'], 'keys': [],
 \},
-\{'name': 'RivTestReload' , 'act': 'call riv#test#reload()',
+\{'name': 'RivReload' , 'act': 'call riv#test#reload()',
     \'note': 'Force reload Riv and Current Document',
     \'menu': 'Test.Force\ Reload',
     \'type': 'buf', 'mode': 'm', 'maps': ['t`'], 'keys': [],
@@ -452,7 +462,7 @@ let g:riv_default.cmds = [
     \'menu': 'Helper.Section',
     \'type': 'buf', 'mode': 'm', 'maps': ['hs'], 'keys': [],
 \},
-\{'name': 'RivVimTest', 'act': 'call riv#test#doctest(<f-args>)',
+\{'name': 'RivVimTest', 'act': 'call doctest#start(<f-args>)',
     \'type': 'farg', 'args': '-nargs=*',
     \'note': 'Run doctest for Vim Script',
     \'menu': 'Helper.VimTest',
@@ -636,9 +646,21 @@ fun! riv#cmd#init_maps() "{{{
     elseif cmd.type == 'expr'
       if has_key(cmd, 'maps')
         for key in map(copy(cmd.maps), 'leader.v:val') + cmd.keys
+          if cmd.mode =~ 'i'
             if index(g:riv_default.ignored_imaps, key) == -1
               exe "ino <silent><buffer><expr>" key cmd.act 
             endif
+          endif
+          if cmd.mode =~ 'v'
+            if index(g:riv_default.ignored_vmaps, key) == -1
+              exe "vno <silent><buffer><expr>" key cmd.act 
+            endif
+          endif
+          if cmd.mode =~ 'n'
+            if index(g:riv_default.ignored_nmaps, key) == -1
+              exe "vno <silent><buffer><expr>" key cmd.act 
+            endif
+          endif
         endfor
       endif
     elseif cmd.type == 'norm'

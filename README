@@ -1,7 +1,36 @@
 This is a mirror of http://www.vim.org/scripts/script.php?script_id=4112
 
-Riv is a vim plugin for taking notes with reStructuredText.
+Intro
+=====
 
-See github for details: https://github.com/Rykka/riv.vim
+**Riv** is a vim plugin for taking notes with reStructuredText_.
+
+.. figure:: https://github.com/Rykka/github_things/raw/master/image/rst_quick_start.gif 
+
+github: https://github.com/Rykka/riv.vim
+
+Comparion
+=========
+
+First things first.
+
+As there are some other note plugins in vim. 
+like vimwiki_, vim-notes_,  VOoM_ etc.
+
+Also org-mode_ if you are Emacs fan.
+
+**Why using this plugin?**
+
+In comparition, the most advantage of **Riv.vim** is reStructuredText_ support. 
+
+    reStructuredText is a markup language.
+
+    It's syntax are markdown_ alike, but more powerful and extensible, table, LaTex ect. are supported.
+
+    It's widely used in python community. And have many relevent plugins. Sphinx_ (www.readthedocs.org) Pygments_, Nikola_, etc.
+
+    There is a post of comparions between reStructuredText and markdown https://gist.github.com/dupuy/1855764
+
+See More Intro on github: https://github.com/Rykka/riv.vim
 
 

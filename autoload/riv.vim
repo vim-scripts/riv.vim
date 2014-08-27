@@ -9,29 +9,33 @@ let s:cpo_save = &cpo
 set cpo-=C
 
 let s:autoload_path = expand('<sfile>:p:h')
-let g:riv_version = '0.74'
-let g:riv_p_id = 0
+let g:riv_version = '0.77'
+let s:tempdir = fnamemodify(tempname(),':p')
 
 " Miscs "{{{1
 fun! riv#echo(msg) "{{{
+    redraw
     echohl Type
     echo '[RIV]'
     echohl Normal
     echon a:msg
 endfun "}}}
 fun! riv#error(msg) "{{{
+    redraw
     echohl ErrorMsg
     echo '[RIV]'
     echohl Normal
     echon a:msg
 endfun "}}}
 fun! riv#warning(msg) "{{{
+    redraw
     echohl WarningMsg
     echo '[RIV]'
     echohl Normal
     echon a:msg
 endfun "}}}
 fun! riv#debug(msg) "{{{
+    redraw
     if g:riv_debug
         echohl KeyWord
         echom "[RIV]"
@@ -43,12 +47,38 @@ fun! riv#breakundo() "{{{
     let &ul=&ul
 endfun "}}}
 fun! riv#id() "{{{
-    return exists('b:riv_p_id') ? b:riv_p_id : g:riv_p_id
+    " loop over the project root list and check if match,
+    "
+    " @return
+    " -1 if not in project, which proj[-1] is the Temp Proj dir.
+    " else the project's id in list g:_riv_c.p
+    
+    if !exists('b:riv_id') 
+        let b:riv_id = -1
+        
+        let f = expand('%:p')
+        for proj in g:_riv_c.p
+            if  riv#path#is_rel_to( proj._root_path, f)
+                let b:riv_id = proj.id
+                break
+            endif
+        endfor
+    endif
+    
+    return b:riv_id
 endfun "}}}
 fun! riv#get_latest() "{{{
     echohl Statement
     echo "Get Latest Verion at https://github.com/Rykka/riv.vim"
     echohl Normal
+endfun "}}}
+fun! riv#system(arg) abort "{{{
+    " XXX: error in windows tmp files
+    if exists("*vimproc#system")
+        return vimproc#system(a:arg)
+    else
+        return system(a:arg)
+    endif
 endfun "}}}
 "}}}
 "{{{ Loading Functions
@@ -116,7 +146,7 @@ let s:default.options = {
     \'rst2s5_args'        : "",
     \'rst2latex_args'     : "",
     \'section_levels'     : '=-~"''`',
-    \'html_code_hl_style' : 'default',
+    \'html_code_hl_style' : 'molokai',
     \'fuzzy_help'         : 0,
     \'auto_format_table'  : 1,
     \'fold_info_pos'      : 'right',
@@ -137,41 +167,49 @@ let s:default.options = {
     \'scratch_path'       : 'Scratch',
     \'source_suffix'      : '.rst',
     \'master_doc'         : 'index',
+    \'auto_rst2html'      :  0,
+    \'open_link_location' :  1,
+    \'css_theme_dir'      :  '',
     \}
 "}}}
 
 " project options " {{{
-fun! s:set_proj_conf(proj) "{{{
-    let proj = copy(g:_riv_c.p_basic)
-    for [key,var] in items(a:proj)
-        let proj[key] = var
-        unlet var
-    endfor
-    return proj
-endfun "}}}
-fun! riv#index(...) "{{{
-    let id = a:0 ? a:1 : g:riv_p_id
-    if exists("g:_riv_c.p[id]")
-        " >>> echo riv#path#idx_file()
-        " index.rst
-        exe "edit +let\\ b:riv_p_id=".id riv#path#root(id).riv#path#idx_file(id)
-    else
-        call riv#error("No such Project ID in g:riv_projects.")
-    endif
-endfun "}}}
 fun! riv#index_list() "{{{
-    " if len(g:_riv_c.p) == 1
-    "     call riv#error('You have NOT set any project in g:riv_projects.')
-    "     return
-    " endif
+    " NOTE:
+    " We may care about using of map,
+    " which may change your item here.
+    " like the g:_riv_c.p
     let id = inputlist(["Please Select One Project ID:"]+
-                \map(range(len(g:_riv_c.p)),'v:val+1. "." . g:_riv_c.p[v:val].path') )
+                \map(copy(g:_riv_c.p), 'v:val.id+1. "  " . v:val._name . " : " . v:val.path') )
+    if id == '' || id == 0 | return | endif
     if id != 0
         call riv#index(id-1)
     endif
 endfun "}}}
+fun! riv#index(...) "{{{
+    let id = a:0 ? a:1 : 0
+    if exists("g:_riv_c.p[id]")
+        " >>> echo riv#path#root_index()
+        " index.rst
+        exe "edit " . riv#path#root_index(id)
+        " e g:_riv_c.p[id]._root_path
+    else
+        call riv#error("No such Project ID in g:riv_projects.")
+    endif
+endfun "}}}
 "}}}
 
+fun! s:set_proj_conf(proj) "{{{
+    " XXX 
+    " We can skip this step, just use p_basic's option as an back up
+    let proj = copy(g:_riv_c.p_basic)
+    for [key,var] in items(a:proj)
+        let proj[key] = copy(var)
+        unlet var
+    endfor
+    let proj._name = printf('%-15s', proj.name)
+    return proj
+endfun "}}}
 fun! riv#load_conf() "{{{1
     let g:_riv_debug = exists("g:_riv_debug") ? g:_riv_debug : 0
 
@@ -212,9 +250,26 @@ fun! riv#load_conf() "{{{1
             let s:c.py_imported = 0
         endtry
     endif "}}}
+
+
+    " XXX:
+    " For using one rst both in windows and linux.
+    " This will cause things different, though vim will handle it.
+    "
+    " Is this correct way to define slash?
+    " can 'shellslash' be used?
+    
+    let s:c.is_windows = has('win16') || has('win32') || has('win64') || has('win95')
+    let s:c.is_cygwin = has('win32unix')
+    let s:c.is_mac = !s:c.is_windows && !s:c.is_cygwin
+    \ && (has('mac') || has('macunix') || has('gui_macvim') ||
+    \ (!isdirectory('/proc') && executable('sw_vers')))
+
+    let s:c.slash =  s:c.is_windows ? '\' : '/'
     
     " Project: "{{{
     let s:c.p_basic = {
+        \'name'               : "My Note" ,
         \'path'               : g:riv_default_path ,
         \'build_path'         : g:riv_build_path ,
         \'scratch_path'       : g:riv_scratch_path ,
@@ -223,18 +278,30 @@ fun! riv#load_conf() "{{{1
         \'file_link_style'    : g:riv_file_link_style,
         \}
     let s:c.p = []
+
     if exists("g:riv_projects") && type(g:riv_projects) == type([])
         for project in g:riv_projects
             if type(project) == type({})
-                call add(s:c.p, s:set_proj_conf(project))
+                call add(s:c.p, project)
             endif
         endfor
     elseif exists("g:riv_project") && type(g:riv_project) == type({})
-        call add(s:c.p, s:set_proj_conf(g:riv_project))
+        call add(s:c.p, g:riv_project)
     endif
+
     if empty(s:c.p)
-        call insert(s:c.p, s:c.p_basic)
+        call add(s:c.p, s:c.p_basic)
     endif
+    " insert a temp file path at last one
+    " >>> echo fnamemodify(tempname(), ':h')
+    call add(s:c.p, {'path': fnamemodify(tempname(), ':h'),
+                   \ 'name': 'Temp Project'})
+
+    for i in range(len(s:c.p))
+        let s:c.p[i].id = i
+    endfor
+
+    call map(s:c.p, "s:set_proj_conf(v:val)")
     
     let s:t.doc_exts = 'rst|txt'
     let s:c.doc_ext_list = ['txt']
@@ -325,7 +392,8 @@ fun! riv#load_conf() "{{{1
     let s:e.NOT_DATESTAMP = "Riv: Not a Datestamp"
     let s:e.NOT_RST_FILE  = "Riv: NOT A RST FILE"
     let s:e.FILE_NOT_FOUND = "Riv: Could not find the file"
-    let s:e.REF_NOT_FOUND = "Riv: Could not find the reference"
+    let s:e.REF_NOT_FOUND = "Riv: Could not find the link reference"
+    let s:e.TAR_NOT_FOUND = "Riv: Could not find the link targets"
 
 endfun "}}}
 fun! riv#load_aug() "{{{
@@ -355,19 +423,26 @@ endfun "}}}
 
 fun! riv#buf_load_aug() "{{{
     aug RIV_BUFFER "{{{
+        " NOTE:
+        " We should take care of the buffer loading here.
+        " use au! in each group to clear to avoid 
+        " duplicated loading
+        au! BufWritePost <buffer>  call riv#fold#update() 
+        au  BufWritePost <buffer>  call riv#todo#update()
+        au!  BufWritePre  <buffer>  call riv#create#auto_mkdir()
+        au!  WinLeave,BufWinLeave     <buffer>  call riv#file#update()
         if exists("g:riv_auto_format_table") && g:riv_auto_format_table == 1 "{{{
             au! InsertLeave <buffer> call riv#table#format_pos()
+        endif "}}}
+        if exists("g:riv_auto_rst2html") && g:riv_auto_rst2html == 1 "{{{
+            au BufWritePost <buffer> sil! Riv2HtmlFile
         endif "}}}
         if exists("g:riv_link_cursor_hl")  && g:riv_link_cursor_hl == 1 "{{{
             " cursor_link_highlight
             au! CursorMoved <buffer>  call riv#link#hi_hover()
             " clear the highlight before bufwin/winleave
-            au! WinLeave,BufWinLeave     <buffer>  2match none
+            au WinLeave,BufWinLeave     <buffer>  2match none
         endif "}}}
-        au  WinLeave,BufWinLeave     <buffer>  call riv#file#update()
-        au! BufWritePost <buffer>  call riv#fold#update() 
-        au  BufWritePost <buffer>  call riv#todo#update()
-        au! BufWritePre  <buffer>  call riv#create#auto_mkdir()
     aug END "}}}
 endfun "}}}
 fun! riv#buf_load_syn() "{{{
@@ -380,6 +455,7 @@ fun! riv#buf_load_syn() "{{{
     endif
 endfun "}}}
 fun! riv#buf_init() "{{{
+    call riv#id()
     " for the rst buffer
     if g:riv_disable_folding == 0
         setl foldmethod=expr foldexpr=riv#fold#expr(v:lnum) 
@@ -397,9 +473,10 @@ fun! riv#buf_init() "{{{
     call riv#buf_load_aug()
 endfun "}}}
 
+
 if expand('<sfile>:p') == expand('%:p') "{{{
     call riv#init()
-    call riv#test#doctest('%','%',2)
+    call doctest#start()
 endif "}}}
 
 let &cpo = s:cpo_save
