@@ -2,37 +2,34 @@
 Riv: Take Notes in rst
 #######################
 
+:Last Update: 2014-08-29
+:Version: 0.78
+
+..
+
     The Internet is just a world passing around notes in a classroom.
 
     -- `Jon Stewart`_
 
-:Last Update: 2014-08-28
-:Version: 0.77
 
+What's New in 0.78
+==================
 
-What's New
-===========
+1. Using clickable.vim_ for clicking function.
 
-Lots of changes were made, See changelog_ for details.
+   add 'rykka/clickable.vim' to your bundle setting.
+   also add 'rykka/os.vim' (though this will migrate to the vital.vim sooner
+   or later)
 
-  A. A brand new html theme for riv, rhythm.css_
-  B. Auto converting to html on ``:write``:
-  C. New syntax and method for local files, 
-  D. Unicode Link names.
-  E. Better and faster indent behavior.
-  F. Fixed lots of misc bugs and made lots of small optimization
 
 ----
 
    **And**
 
-Please help improving this plugin, for better writing and reading.
+   Both bug reports and suggestions are welcome.
 
-Both bug reports and suggestions are welcome.
+   Many Thanks!
 
-Many Thanks!
-
-----
 
 Intro
 =====
@@ -40,9 +37,10 @@ Intro
 **Riv** is a vim plugin for taking notes with reStructuredText_.
 
 
-Screencast with InstantRst_ (It's a bit outdated,  anyone create a new one are welcome)
+.. figure:: https://github.com/Rykka/github_things/raw/master/image/rst_quick_start.gif
+    :align: center
 
-.. image:: intro.gif
+    riv.vim_ (vim) +  InstantRst_ (web server) +  rhythm.css_ (theme)
 
 Comparion
 =========
@@ -86,7 +84,7 @@ Features
     - Vim & Python: InstantRst_ for preview rst document instantly.
     - Vim & Python: Syntastic_ for syntax checking. Requires Docutils_ and Pygments_.
     - Python: Sphinx_ for Sphinx users.
-    - Python: Nikola_ for static blogging with rst syntax.
+    - Python: Nikola_ or pelican_ for static blogging with rst syntax.
     - Python: HoverCraft_ for writing presentation from rst.
 
     Contribution to this list are welcome.
@@ -238,3 +236,6 @@ Common Issues
 .. _`#72`: https://github.com/Rykka/riv.vim/issues/72
 .. _rhythm.css: https://github.com/Rykka/rhythm.css
 .. _changelog: changelog.rst
+.. _riv.vim: http://github.com/Rykka/riv.vim
+.. _pelican: https://github.com/getpelican/pelican
+.. _clickable.vim: https://github.com/Rykka/clickable.vim

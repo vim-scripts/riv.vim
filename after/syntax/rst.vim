@@ -45,10 +45,10 @@ syn cluster rstCommentGroup contains=rstCommentTitle,rstTodo
 " File: "{{{1
 syn cluster rstCruft add=rstStandaloneHyperlink
 syn cluster rstCommentGroup add=@rstLinkGroup
-if g:riv_file_ext_link_hl == 1
-    exe 'syn match rstFileExtLink &'.s:s.rstFileExtLink.'&'
-    syn cluster rstCruft add=rstFileExtLink
-endif
+" if g:riv_file_ext_link_hl == 1
+"     exe 'syn match rstFileExtLink &'.s:s.rstFileExtLink.'&'
+"     syn cluster rstCruft add=rstFileExtLink
+" endif
 
 " Code: "{{{1
 
@@ -108,7 +108,9 @@ for code in g:_riv_t.highlight_code
 endfor
 let b:current_syntax = "rst"
 
-if has("spell")
+if !exists("g:_riv_incluing_python_rst") && has("spell")
+    " Enable spelling on the whole file if we're not being included to parse
+    " docstrings
     syn spell toplevel
 endif
 

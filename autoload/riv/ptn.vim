@@ -390,9 +390,11 @@ fun! riv#ptn#init() "{{{
     " There is a bug that the filename must contain more than 
     " one str, Solving it may made this ptn more complex.
     " So Skip.
-    "
-    " let file_name = '[[:alnum:]~./][[:alnum:]~:./\\_-]*[[:alnum:]/\\]'
-    let file_name = '%([^[:cntrl:][:punct:][:space:]]|[~./])%([^[:cntrl:][:punct:][:space:]]|[~:./\\_-])*%([^[:cntrl:][:punct:][:space:]]|[/\\])'
+    if g:riv_unicode_ref_name == 1
+        let file_name = '%([^[:cntrl:][:punct:][:space:]]|[~./])%([^[:cntrl:][:punct:][:space:]]|[~:./\\_-])*%([^[:cntrl:][:punct:][:space:]]|[/\\])'
+    else
+        let file_name = '[[:alnum:]~./][[:alnum:]~:./\\_-]*[[:alnum:]/\\]'
+    endif
     
     " The link for ext file, for in vim only.
     if g:riv_file_ext_link_hl == 1
@@ -436,7 +438,11 @@ fun! riv#ptn#init() "{{{
     " [#]_ [*]_  [#xxx]_  [3]_    and citation [xxxx]_
     " NOTE: the rst recongnize unicode_char_ target and refernce
     " So use [^[:punct]] here.
-    let ref_name = '[^[:cntrl:][:punct:][:space:]]+%([_.-][^[:space:][:punct:][:cntrl:]]+)*'
+    if g:riv_unicode_ref_name == 1
+        let ref_name = '[^[:cntrl:][:punct:][:space:]]+%([_.-][^[:space:][:punct:][:cntrl:]]+)*'
+    else
+        let ref_name = '\w+%([_.-]\w+)*'
+    endif
     let ref_end = '%($|\s|[''")\]}>/:.,;!?\\-])'
     let ref_bgn = '%(\s|^|[''"([{</:])'
 
@@ -513,6 +519,18 @@ fun! riv#ptn#init() "{{{
                     \ . '|(' . link_file{i} . ')' 
                     \ . '|(' . ext_file_link . ')' 
     endfor
+
+    " for clickable highlight
+    let tar_footnote = '^%(\.\.\s)\@<=\[%(\d+|#|#='.ref_name .')\]\ze%(\s|$)'
+    let tar_inline = ref_bgn.'\zs_`[^`\\]+`\ze'.ref_end
+    let tar_normal = '^\.\.\s\zs_[^:\\]+:\ze%(\s|$)'
+    let tar_anonymous = '^\.\.\s\zs__:\ze%(\s|$)|^\zs__\ze%(\s|$)'
+
+    let link_target = tar_normal
+            \.'|'. tar_inline .'|'. tar_footnote .'|'. tar_anonymous
+    
+    let s:p['link_tar'] = '\v^\s*\.\.\ze\s[_[]|^\s*__\ze\s'
+    let s:p['link_ref'] = '\v' . link_reference
     "}}}4
     "
     " Miscs: 
@@ -714,9 +732,18 @@ fun! riv#ptn#rstFileLink() "{{{
     return g:_riv_s['rstFileLink'.riv#path#file_link_style()]
 endfun "}}}
 
+
+fun! riv#ptn#get_ptn(name) "{{{
+    if exists("s:p[a:name]")
+        return s:p[a:name]
+    else
+        return -1
+    endif
+endfun "}}}
+
 if expand('<sfile>:p') == expand('%:p') "{{{
     call riv#ptn#init()
-    call doctest#start()
+    " call doctest#start()
 endif "}}}
 
 let &cpo = s:cpo_save
